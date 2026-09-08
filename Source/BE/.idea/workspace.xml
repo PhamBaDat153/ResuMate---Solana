@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="74710656-b804-4adf-819c-8352b05bef9d" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.env" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/.mvn/wrapper/maven-wrapper.properties" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/HELP.md" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/mvnw" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/mvnw.cmd" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/pom.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/resumate/source_code/Controller/EvaluateController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/resumate/source_code/DTO/EvaluateRequest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/resumate/source_code/DTO/EvaluateResponse.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/resumate/source_code/DTO/KeywordMatch.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/resumate/source_code/Model/FileType.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/resumate/source_code/Service/Function/CVEvaluateService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/resumate/source_code/Service/Function/CVEvaluateServiceImplement.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/resumate/source_code/SourceCodeApplication.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/resumate/source_code/Ultility/GeminiEvaluatorImplement.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/resumate/source_code/Ultility/KeywordExtractor.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/resumate/source_code/Ultility/KeywordExtractorImplement.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/java/resumate/source_code/Ultility/LLMEvaluator.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/application.properties" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/main/resources/keywords.tsv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/resumate/source_code/SourceCodeApplicationTests.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/src/test/java/resumate/source_code/Ultility/KeywordExtractorImplementTest.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/application.properties" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/keywords.tsv" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/resumate/source_code/Controller/EvaluateController.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/resumate/source_code/DTO/EvaluateRequest$EvaluateRequestBuilder.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/resumate/source_code/DTO/EvaluateRequest.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/resumate/source_code/DTO/EvaluateResponse$EvaluateResponseBuilder.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/resumate/source_code/DTO/EvaluateResponse.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/resumate/source_code/DTO/KeywordMatch.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/resumate/source_code/Model/FileType.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/resumate/source_code/Service/Function/CVEvaluateService.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/resumate/source_code/Service/Function/CVEvaluateServiceImplement$1.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/resumate/source_code/Service/Function/CVEvaluateServiceImplement.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/resumate/source_code/SourceCodeApplication.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/resumate/source_code/Ultility/GeminiEvaluatorImplement.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/resumate/source_code/Ultility/KeywordExtractor.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/resumate/source_code/Ultility/KeywordExtractorImplement$CatalogEntry.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/resumate/source_code/Ultility/KeywordExtractorImplement.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/classes/resumate/source_code/Ultility/LLMEvaluator.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/createdFiles.lst" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/inputFiles.lst" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/surefire-reports/TEST-resumate.source_code.SourceCodeApplicationTests.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/surefire-reports/TEST-resumate.source_code.Ultility.KeywordExtractorImplementTest.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/surefire-reports/resumate.source_code.SourceCodeApplicationTests.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/surefire-reports/resumate.source_code.Ultility.KeywordExtractorImplementTest.txt" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/test-classes/resumate/source_code/SourceCodeApplicationTests.class" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/target/test-classes/resumate/source_code/Ultility/KeywordExtractorImplementTest.class" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/../.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Source/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/../Source/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Source/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/../Source/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/../Source/src/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/../Source/src/App.tsx" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
+  </component>
+  <component name="MavenImportPreferences">
+    <option name="generalSettings">
+      <MavenGeneralSettings>
+        <option name="mavenHomeTypeForPersistence" value="WRAPPER" />
+      </MavenGeneralSettings>
+    </option>
+  </component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 2,
+  &quot;fromUser&quot;: false
+}</component>
+  <component name="ProjectId" id="3HrNLGGubsiIiAYGBjmMPPnENfa" />
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.MCP Project settings loaded": "true",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.typescript.service.memoryLimit.init": "true",
+    "Spring Boot.SourceCodeApplication.executor": "Run",
+    "codeWithMe.voiceChat.enabledByDefault": "false",
+    "git-widget-placeholder": "main",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "D:/Projects/Github/ResuMate---Solana/BE",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "project.structure.last.edited": "Modules",
+    "project.structure.proportion": "0.0",
+    "project.structure.side.proportion": "0.0"
+  }
+}]]></component>
+  <component name="RunManager">
+    <configuration default="true" type="JetRunConfigurationType">
+      <module name="Source code" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+    <configuration default="true" type="KotlinStandaloneScriptRunConfigurationType">
+      <module name="BE" />
+      <option name="filePath" />
+      <method v="2" />
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-30f59d01ecdd-a203e0a19954-intellij.indexing.shared.core-IU-262.10315.125" />
+        <option value="bundled-js-predefined-d6986cc7102b-4abd2a77f808-JavaScript-IU-262.10315.125" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="74710656-b804-4adf-819c-8352b05bef9d" name="Changes" comment="" />
+      <created>1786622173341</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1786622173341</updated>
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>

@@ -111,6 +111,33 @@ npm run setup   # Or: npm run anchor-build && npm run codama:js
 
 This uses [Codama](https://github.com/codama-idl/codama) to generate a type-safe client from the Anchor IDL.
 
+## CV Evaluation Integration
+
+Start the Spring Boot backend from `BE/`:
+
+```bash
+./mvnw spring-boot:run
+```
+
+Then start the Vite frontend from `Source/`:
+
+```bash
+npm install
+npm run dev
+```
+
+The frontend sends evaluation requests to `/api/evaluate`. Vite proxies that path to the backend's `/evaluate` endpoint at `http://localhost:8080` by default. Set `VITE_BACKEND_URL` when the backend uses another local URL.
+
+Frontend checks:
+
+```bash
+npm run test
+npm run lint
+npm run build
+```
+
+In production, configure the hosting reverse proxy to provide the same-origin `/api/evaluate` forwarding rule, or replace the API boundary with the deployment's configured API base URL.
+
 ## Learn More
 
 - [Solana Docs](https://solana.com/docs) - core concepts and guides

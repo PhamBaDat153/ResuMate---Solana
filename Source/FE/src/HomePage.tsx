@@ -1,7 +1,7 @@
 import { useWalletConnection } from "@solana/react-hooks";
 import { VaultCard } from "./VaultCard";
 
-export default function App() {
+export default function HomePage() {
   const { connectors, connect, disconnect, wallet, status } =
     useWalletConnection();
 
