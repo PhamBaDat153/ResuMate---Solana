@@ -9,9 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import resumate.source_code.DTO.EvaluateRequest;
 import resumate.source_code.DTO.EvaluateResponse;
-import resumate.source_code.DTO.KeywordMatch;
 import resumate.source_code.Model.FileType;
-import resumate.source_code.Ultility.KeywordExtractor;
 import resumate.source_code.Ultility.LLMEvaluator;
 
 import java.io.IOException;
@@ -19,11 +17,9 @@ import java.io.IOException;
 @Service
 public class CVEvaluateServiceImplement implements CVEvaluateService {
 
-    private final KeywordExtractor keywordExtractor;
     private final LLMEvaluator llmEvaluator;
 
-    public CVEvaluateServiceImplement(KeywordExtractor keywordExtractor, LLMEvaluator llmEvaluator) {
-        this.keywordExtractor = keywordExtractor;
+    public CVEvaluateServiceImplement(LLMEvaluator llmEvaluator) {
         this.llmEvaluator = llmEvaluator;
     }
 
@@ -35,16 +31,11 @@ public class CVEvaluateServiceImplement implements CVEvaluateService {
         System.out.println("CV text: " + cvText);
         System.out.println("JD text: " + jdText);
 
-        KeywordMatch match = keywordExtractor.extract(cvText, jdText);
-        System.out.println("Match: " + match);
-
         EvaluateResponse ai = llmEvaluator.evaluate(cvText, jdText);
 
         return EvaluateResponse.builder()
                 .score(ai.getScore())
                 .summary(ai.getSummary())
-                .matchedKeywords(match.matched())
-                .missingKeywords(match.missing())
                 .suitablePoints(ai.getSuitablePoints())
                 .unsuitablePoints(ai.getUnsuitablePoints())
                 .suggestions(ai.getSuggestions())

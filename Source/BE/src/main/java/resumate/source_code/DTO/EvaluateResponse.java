@@ -14,8 +14,6 @@ import java.util.List;
 public class EvaluateResponse {
     private int score;
     private String summary;
-    private List<String> matchedKeywords;
-    private List<String> missingKeywords;
     private List<String> suitablePoints;
     private List<String> unsuitablePoints;
     private List<String> suggestions;

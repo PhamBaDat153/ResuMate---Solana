@@ -48,8 +48,6 @@ describe("EvaluatePage", () => {
     const result = {
       score: 75,
       summary: "Tốt",
-      matchedKeywords: [],
-      missingKeywords: [],
       suitablePoints: [],
       unsuitablePoints: [],
       suggestions: [],
@@ -106,8 +104,6 @@ describe("EvaluatePage", () => {
     const result = {
       score: 70,
       summary: "Đạt",
-      matchedKeywords: [],
-      missingKeywords: [],
       suitablePoints: [],
       unsuitablePoints: [],
       suggestions: [],

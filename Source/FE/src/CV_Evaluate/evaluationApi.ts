@@ -1,16 +1,12 @@
 export type EvaluationResult = {
   score: number;
   summary: string;
-  matchedKeywords: string[];
-  missingKeywords: string[];
   suitablePoints: string[];
   unsuitablePoints: string[];
   suggestions: string[];
 };
 
 const RESULT_COLLECTIONS = [
-  "matchedKeywords",
-  "missingKeywords",
   "suitablePoints",
   "unsuitablePoints",
   "suggestions",

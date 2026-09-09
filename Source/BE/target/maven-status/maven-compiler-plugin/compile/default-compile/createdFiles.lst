@@ -3,14 +3,10 @@ resumate\source_code\Service\Function\CVEvaluateService.class
 resumate\source_code\SourceCodeApplication.class
 resumate\source_code\Controller\EvaluateController.class
 resumate\source_code\DTO\EvaluateRequest$EvaluateRequestBuilder.class
-resumate\source_code\Ultility\KeywordExtractor.class
-resumate\source_code\Ultility\KeywordExtractorImplement.class
 resumate\source_code\Service\Function\CVEvaluateServiceImplement.class
 resumate\source_code\DTO\EvaluateRequest.class
 resumate\source_code\Service\Function\CVEvaluateServiceImplement$1.class
 resumate\source_code\Ultility\LLMEvaluator.class
-resumate\source_code\Ultility\KeywordExtractorImplement$CatalogEntry.class
 resumate\source_code\DTO\EvaluateResponse.class
 resumate\source_code\Ultility\GeminiEvaluatorImplement.class
 resumate\source_code\Model\FileType.class
-resumate\source_code\DTO\KeywordMatch.class

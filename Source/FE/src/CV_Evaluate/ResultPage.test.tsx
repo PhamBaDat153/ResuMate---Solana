@@ -6,8 +6,6 @@ import ResultPage from "./ResultPage";
 const result = {
   score: 91,
   summary: "Kết quả từ backend",
-  matchedKeywords: ["React"],
-  missingKeywords: [],
   suitablePoints: ["Có kinh nghiệm phù hợp"],
   unsuitablePoints: [],
   suggestions: ["Bổ sung thành tựu"],
@@ -36,8 +34,6 @@ describe("ResultPage", () => {
 
     expect(screen.getByText("91")).toBeInTheDocument();
     expect(screen.getByText("Kết quả từ backend")).toBeInTheDocument();
-    expect(screen.getByText("React")).toBeInTheDocument();
-    expect(screen.getByText("Không có từ khóa còn thiếu.")).toBeInTheDocument();
     expect(
       screen.getByText("Không có điểm cần cải thiện nào.")
     ).toBeInTheDocument();

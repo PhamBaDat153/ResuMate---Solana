@@ -142,45 +142,6 @@ export default function ResultPage() {
         </div>
 
         <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          <ResultCard icon="✓" title="Từ khóa phù hợp">
-            <div className="flex flex-wrap gap-2">
-              {result.matchedKeywords.length > 0 ? (
-                result.matchedKeywords.map((keyword) => (
-                  <span
-                    key={keyword}
-                    className="rounded-full bg-primary/10 px-3 py-1.5 text-sm font-medium text-primary"
-                  >
-                    {keyword}
-                  </span>
-                ))
-              ) : (
-                <p className="text-sm text-muted">
-                  Không có từ khóa phù hợp nào.
-                </p>
-              )}
-            </div>
-          </ResultCard>
-          <ResultCard icon="+" title="Từ khóa còn thiếu">
-            <div className="flex flex-wrap gap-2">
-              {result.missingKeywords.length > 0 ? (
-                result.missingKeywords.map((keyword) => (
-                  <span
-                    key={keyword}
-                    className="rounded-full border border-border-low bg-cream px-3 py-1.5 text-sm text-foreground/70"
-                  >
-                    {keyword}
-                  </span>
-                ))
-              ) : (
-                <p className="text-sm text-muted">
-                  Không có từ khóa còn thiếu.
-                </p>
-              )}
-            </div>
-          </ResultCard>
-        </div>
-
-        <div className="mt-5 grid gap-5 lg:grid-cols-2">
           <ResultCard icon="↗" title="Điểm phù hợp">
             <ListContent
               items={result.suitablePoints}

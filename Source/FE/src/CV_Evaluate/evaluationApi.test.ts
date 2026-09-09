@@ -4,8 +4,6 @@ import { isEvaluationResult, submitEvaluation } from "./evaluationApi";
 const validResult = {
   score: 80,
   summary: "Phù hợp",
-  matchedKeywords: ["React"],
-  missingKeywords: [],
   suitablePoints: ["Kinh nghiệm liên quan"],
   unsuitablePoints: [],
   suggestions: ["Bổ sung số liệu"],

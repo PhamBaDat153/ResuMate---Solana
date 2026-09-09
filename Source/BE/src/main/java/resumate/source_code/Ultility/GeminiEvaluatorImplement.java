@@ -106,7 +106,7 @@ public class GeminiEvaluatorImplement implements LLMEvaluator {
                 
                   Lưu ý:
                   - UNKNOWN không đồng nghĩa với MISSING.
-                  - Không cộng điểm chỉ vì CV chứa keyword giống JD; phải xét ngữ cảnh và mức độ liên quan.
+                  - Không cộng điểm chỉ vì CV chứa một thuật ngữ giống JD; phải xét ngữ cảnh và mức độ liên quan.
                   - Ưu tiên kinh nghiệm thực tế và thành tích có bằng chứng.
                 
                   3. Chấm điểm từ 0-100 theo trọng số:
