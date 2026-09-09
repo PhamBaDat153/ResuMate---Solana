@@ -9,14 +9,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        destination: `${process.env.VITE_BACKEND_URL ?? 'http://localhost:8080'}/:path*`,
-      },
-    ]
-  },
 }
 
 export default nextConfig

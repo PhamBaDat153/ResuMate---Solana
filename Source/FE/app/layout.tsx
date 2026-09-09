@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Sidebar } from '@/components/sidebar'
+import { SolanaProvider } from '@/components/solana-provider'
 import './globals.css'
 
 const geistSans = Geist({
@@ -26,8 +27,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <Sidebar />
-        <div className="pl-60">{children}</div>
+        <SolanaProvider>
+          <Sidebar />
+          <div className="pl-60">{children}</div>
+        </SolanaProvider>
       </body>
     </html>
   )

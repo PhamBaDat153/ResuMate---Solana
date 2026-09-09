@@ -2,13 +2,27 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useClient } from '@solana/react'
+import {
+  useConnect,
+  useConnectedWallet,
+  useDisconnect,
+  useWallets,
+} from '@solana/kit-plugin-wallet/react'
 import { UploadZone } from '@/components/upload-zone'
 import { submitEvaluation } from '@/lib/evaluationApi'
+import type { SolanaWalletClient } from '@/components/solana-provider'
+import { createPaymentFetch } from '@/lib/x402Wallet'
 
 type JdMode = 'text' | 'file'
 
 export default function EvaluatePage() {
   const router = useRouter()
+  const walletClient = useClient<SolanaWalletClient>()
+  const wallets = useWallets(walletClient)
+  const connectedWallet = useConnectedWallet(walletClient)
+  const connect = useConnect(walletClient)
+  const disconnect = useDisconnect(walletClient)
   const [cvFile, setCvFile] = useState<File | null>(null)
   const [jdMode, setJdMode] = useState<JdMode>('text')
   const [jdText, setJdText] = useState('')
@@ -32,6 +46,11 @@ export default function EvaluatePage() {
       return
     }
 
+    if (!connectedWallet?.signer) {
+      setError('Vui lòng kết nối ví Solana có thể ký giao dịch trước khi đánh giá.')
+      return
+    }
+
     const formData = new FormData()
     formData.append('cv', cvFile)
     if (jdMode === 'text') {
@@ -42,7 +61,10 @@ export default function EvaluatePage() {
 
     setIsSubmitting(true)
     try {
-      const evaluation = await submitEvaluation(formData)
+      const evaluation = await submitEvaluation(
+        formData,
+        createPaymentFetch(connectedWallet.signer),
+      )
       const encoded = encodeURIComponent(JSON.stringify(evaluation))
       router.push(`/result?data=${encoded}`)
     } catch (submissionError) {
@@ -67,6 +89,48 @@ export default function EvaluatePage() {
             Tải CV và cung cấp mô tả công việc để nhận đánh giá phù hợp.
           </p>
         </header>
+
+        <section className="rounded-2xl border border-border-low bg-card p-4 text-sm shadow-[0_20px_80px_-50px_rgba(0,0,0,0.35)]">
+          {connectedWallet ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-muted">
+                Ví đã kết nối:{' '}
+                <span className="font-medium text-foreground">
+                  {connectedWallet.account.address}
+                </span>
+              </p>
+              <button
+                type="button"
+                onClick={() => disconnect.dispatch()}
+                disabled={isSubmitting || disconnect.isRunning}
+                className="rounded-lg border border-border-low px-3 py-2 font-medium transition hover:border-foreground/30 disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Ngắt kết nối
+              </button>
+            </div>
+          ) : wallets.length > 0 ? (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <p className="text-muted">Kết nối ví Solana để thanh toán đánh giá.</p>
+              <div className="flex flex-wrap gap-2">
+                {wallets.map((wallet) => (
+                  <button
+                    key={wallet.name}
+                    type="button"
+                    onClick={() => connect.dispatch(wallet)}
+                    disabled={isSubmitting || connect.isRunning}
+                    className="rounded-lg border border-border-low px-3 py-2 font-medium transition hover:border-foreground/30 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Kết nối {wallet.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <p className="text-muted">
+              Không tìm thấy ví Solana tương thích. Hãy cài ví hỗ trợ Wallet Standard và chọn đúng mạng.
+            </p>
+          )}
+        </section>
 
         {error && (
           <div

@@ -5,65 +5,10 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="4cd4fe4f-edff-40ab-a6dc-9ac3352e137b" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/BE/.env" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/.idea/compiler.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/.idea/workspace.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/.mvn/wrapper/maven-wrapper.properties" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/HELP.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/mvnw" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/mvnw.cmd" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/pom.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/src/main/java/resumate/source_code/Controller/EvaluateController.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/src/main/java/resumate/source_code/DTO/EvaluateRequest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/src/main/java/resumate/source_code/DTO/EvaluateResponse.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/src/main/java/resumate/source_code/DTO/KeywordMatch.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/src/main/java/resumate/source_code/Model/FileType.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/src/main/java/resumate/source_code/Service/Function/CVEvaluateService.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/src/main/java/resumate/source_code/Service/Function/CVEvaluateServiceImplement.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/src/main/java/resumate/source_code/SourceCodeApplication.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/src/main/java/resumate/source_code/Ultility/GeminiEvaluatorImplement.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/src/main/java/resumate/source_code/Ultility/KeywordExtractor.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/src/main/java/resumate/source_code/Ultility/KeywordExtractorImplement.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/src/main/java/resumate/source_code/Ultility/LLMEvaluator.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/src/main/resources/application.properties" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/src/main/resources/keywords.tsv" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/src/test/java/resumate/source_code/SourceCodeApplicationTests.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/src/test/java/resumate/source_code/Ultility/KeywordExtractorImplementTest.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/classes/application.properties" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/classes/keywords.tsv" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/classes/resumate/source_code/Controller/EvaluateController.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/classes/resumate/source_code/DTO/EvaluateRequest$EvaluateRequestBuilder.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/classes/resumate/source_code/DTO/EvaluateRequest.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/classes/resumate/source_code/DTO/EvaluateResponse$EvaluateResponseBuilder.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/classes/resumate/source_code/DTO/EvaluateResponse.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/classes/resumate/source_code/DTO/KeywordMatch.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/classes/resumate/source_code/Model/FileType.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/classes/resumate/source_code/Service/Function/CVEvaluateService.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/classes/resumate/source_code/Service/Function/CVEvaluateServiceImplement$1.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/classes/resumate/source_code/Service/Function/CVEvaluateServiceImplement.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/classes/resumate/source_code/SourceCodeApplication.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/classes/resumate/source_code/Ultility/GeminiEvaluatorImplement.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/classes/resumate/source_code/Ultility/KeywordExtractor.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/classes/resumate/source_code/Ultility/KeywordExtractorImplement$CatalogEntry.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/classes/resumate/source_code/Ultility/KeywordExtractorImplement.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/classes/resumate/source_code/Ultility/LLMEvaluator.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/maven-status/maven-compiler-plugin/compile/default-compile/createdFiles.lst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/maven-status/maven-compiler-plugin/compile/default-compile/inputFiles.lst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/createdFiles.lst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/maven-status/maven-compiler-plugin/testCompile/default-testCompile/inputFiles.lst" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/surefire-reports/TEST-resumate.source_code.SourceCodeApplicationTests.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/surefire-reports/TEST-resumate.source_code.Ultility.KeywordExtractorImplementTest.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/surefire-reports/resumate.source_code.SourceCodeApplicationTests.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/surefire-reports/resumate.source_code.Ultility.KeywordExtractorImplementTest.txt" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/test-classes/resumate/source_code/SourceCodeApplicationTests.class" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/BE/target/test-classes/resumate/source_code/Ultility/KeywordExtractorImplementTest.class" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/Source/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/Source/package-lock.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/Source/package.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/src/App.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Source/src/App.tsx" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Source/vite.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Source/vite.config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/BE/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Source/BE/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/FE/app/evaluate/page.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/Source/FE/app/evaluate/page.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Source/FE/middleware.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Source/FE/middleware.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -79,23 +24,23 @@
   </component>
   <component name="NextEditCompletionFeaturesState">
     <decayedCancelled>
-      <entry key="MS100" value="1.02601271482486" />
-      <entry key="MS500" value="2.515940548961983" />
-      <entry key="S2" value="5.945088660126004" />
-      <entry key="S5" value="9.71260033264406" />
-      <entry key="S10" value="13.903380970637611" />
-      <entry key="S30" value="19.936012630297427" />
-      <entry key="S60" value="22.234016478597614" />
-      <entry key="M2" value="23.55304022834358" />
-      <entry key="M5" value="24.490566079098762" />
-      <entry key="M10" value="26.020848574389213" />
-      <entry key="M15" value="29.28970889186055" />
-      <entry key="M30" value="43.10562571817636" />
-      <entry key="H1" value="64.53993605457282" />
-      <entry key="H2" value="84.58043880212631" />
-      <entry key="H4" value="98.50836089774" />
-      <entry key="D1" value="112.79881191878253" />
-      <entry key="W1" value="115.53511934298518" />
+      <entry key="MS100" value="1.615100108804215" />
+      <entry key="MS500" value="4.228534564863661" />
+      <entry key="S2" value="10.698485312580685" />
+      <entry key="S5" value="17.247562581311946" />
+      <entry key="S10" value="23.11834878273226" />
+      <entry key="S30" value="31.181279499343137" />
+      <entry key="S60" value="34.26246847694323" />
+      <entry key="M2" value="36.04015273893698" />
+      <entry key="M5" value="37.27778756950126" />
+      <entry key="M10" value="38.908884287006515" />
+      <entry key="M15" value="42.20733244136637" />
+      <entry key="M30" value="56.048149400380815" />
+      <entry key="H1" value="77.49856902791203" />
+      <entry key="H2" value="97.55385143717614" />
+      <entry key="H4" value="111.49301558130293" />
+      <entry key="D1" value="125.79590351504987" />
+      <entry key="W1" value="128.53469425937172" />
     </decayedCancelled>
     <decayedSelected>
       <entry key="MS100" value="0.0" />
@@ -117,23 +62,23 @@
       <entry key="W1" value="0.0" />
     </decayedSelected>
     <decayedShown>
-      <entry key="MS100" value="0.10720570696261279" />
-      <entry key="MS500" value="2.0975515246093743" />
-      <entry key="S2" value="5.748281404818535" />
-      <entry key="S5" value="9.598082490802845" />
-      <entry key="S10" value="13.835724881530611" />
-      <entry key="S30" value="19.910291064193316" />
-      <entry key="S60" value="22.220676623589995" />
-      <entry key="M2" value="23.546242445965675" />
-      <entry key="M5" value="24.487808361349604" />
-      <entry key="M10" value="26.019367528623498" />
-      <entry key="M15" value="29.288560282991597" />
-      <entry key="M30" value="43.104763949703475" />
-      <entry key="H1" value="64.53932152158097" />
-      <entry key="H2" value="84.58005586648197" />
-      <entry key="H4" value="98.50814490872578" />
-      <entry key="D1" value="112.79877191219245" />
-      <entry key="W1" value="115.53511352069255" />
+      <entry key="MS100" value="1.5747357000018258" />
+      <entry key="MS500" value="4.200933128213673" />
+      <entry key="S2" value="10.617842008481757" />
+      <entry key="S5" value="17.166026507997916" />
+      <entry key="S10" value="23.059956876904273" />
+      <entry key="S30" value="31.15600001230943" />
+      <entry key="S60" value="34.24892290285304" />
+      <entry key="M2" value="36.03313641219617" />
+      <entry key="M5" value="37.27491346832201" />
+      <entry key="M10" value="38.907340434883466" />
+      <entry key="M15" value="42.20614115283977" />
+      <entry key="M30" value="56.04726594090918" />
+      <entry key="H1" value="77.49794350042399" />
+      <entry key="H2" value="97.55346293522378" />
+      <entry key="H4" value="111.49279678433508" />
+      <entry key="D1" value="125.79586303611813" />
+      <entry key="W1" value="128.53468836948107" />
     </decayedShown>
   </component>
   <component name="ProjectColorInfo">{
@@ -190,6 +135,8 @@
       <updated>1788881031515</updated>
       <workItem from="1788881032513" duration="5723000" />
       <workItem from="1788923196182" duration="205000" />
+      <workItem from="1788945053854" duration="129000" />
+      <workItem from="1788950472202" duration="245000" />
     </task>
     <servers />
   </component>

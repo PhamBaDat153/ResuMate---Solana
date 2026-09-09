@@ -36,9 +36,10 @@ export function isEvaluationResult(value: unknown): value is EvaluationResult {
 }
 
 export async function submitEvaluation(
-  formData: FormData
+  formData: FormData,
+  paymentFetch: typeof fetch = fetch,
 ): Promise<EvaluationResult> {
-  const response = await fetch("/api/evaluate", {
+  const response = await paymentFetch("/api/evaluate", {
     method: "POST",
     body: formData,
   });
