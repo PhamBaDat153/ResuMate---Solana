@@ -2,25 +2,24 @@ import Link from 'next/link'
 
 export default function Home() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <div className="w-full">
-          <h1 className="text-4xl font-bold mb-4">Welcome to x402 Solana Template</h1>
-          <p className="text-gray-600 dark:text-gray-400 mb-6">
-            This is a Next.js template with Solana payment integration using the x402 protocol.
-          </p>
-          <div className="flex gap-4">
+    <div className="flex min-h-screen items-center bg-bg1 px-6">
+      <main className="mx-auto w-full max-w-5xl py-24">
+        <div className="max-w-4xl">
+          <p className="mb-5 text-xs font-semibold uppercase tracking-[0.28em] text-muted">ResuMate · AI career copilot</p>
+          <h1 className="text-5xl font-semibold tracking-tight sm:text-7xl">Từ CV đến cơ hội phù hợp.</h1>
+          <p className="mb-8 mt-6 max-w-2xl text-lg leading-8 text-muted">Đánh giá mức độ phù hợp với một JD cụ thể hoặc để AI tìm những công việc phù hợp nhất với kinh nghiệm của bạn.</p>
+          <div className="flex flex-wrap gap-3">
             <Link
-              href="/content/cheap"
-              className="inline-block px-6 py-3 bg-neutral-800 text-white rounded-lg font-semibold hover:opacity-90 transition-opacity"
+              href="/jobs"
+              className="inline-block rounded-xl bg-foreground px-6 py-3 font-semibold text-background transition-opacity hover:opacity-85"
             >
-              Access Cheap Content 🪣
+              Tìm việc bằng AI
             </Link>
             <Link
-              href="/content/expensive"
-              className="inline-block px-6 py-3 bg-neutral-800 text-white rounded-lg font-semibold hover:opacity-90 transition-opacity"
+              href="/evaluate"
+              className="inline-block rounded-xl border border-border-strong px-6 py-3 font-semibold transition hover:bg-cream"
             >
-              Access Expensive Content 💰
+              Đánh giá CV với JD
             </Link>
           </div>
         </div>

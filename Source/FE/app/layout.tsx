@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: 'Solana x402 Template',
-  description: 'This is a Next.js template with Solana payment integration using the x402 protocol.',
+  title: 'ResuMate - AI Job Matching',
+  description: 'Upload your CV and discover suitable jobs validated by AI.',
 }
 
 export default function RootLayout({
@@ -25,11 +25,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
+    <html lang="vi">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <SolanaProvider>
           <Sidebar />
-          <div className="pl-60">{children}</div>
+          <div className="pl-0 md:pl-60">{children}</div>
         </SolanaProvider>
       </body>
     </html>

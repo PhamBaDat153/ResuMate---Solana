@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation'
 const NAV_ITEMS = [
   { href: '/', label: 'Home' },
   { href: '/evaluate', label: 'Đánh giá CV' },
+  { href: '/jobs', label: 'Tìm việc bằng AI' },
 ] as const
 
 export function Sidebar() {

@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import resumate.source_code.DTO.EvaluateRequest;
 import resumate.source_code.DTO.EvaluateResponse;
 import resumate.source_code.Service.Function.CVEvaluateService;
+import resumate.source_code.Service.Function.JobMatchingService;
+import resumate.source_code.DTO.JobMatchRequest;
 
 import java.util.Map;
 
@@ -16,9 +18,20 @@ import java.util.Map;
 public class EvaluateController {
 
     private final CVEvaluateService cvEvaluateService;
+    private final JobMatchingService jobMatchingService;
 
-    public EvaluateController(CVEvaluateService cvEvaluateService) {
+    public EvaluateController(CVEvaluateService cvEvaluateService, JobMatchingService jobMatchingService) {
         this.cvEvaluateService = cvEvaluateService;
+        this.jobMatchingService = jobMatchingService;
+    }
+
+    @PostMapping("/jobs/match")
+    public ResponseEntity<?> matchJobs(@ModelAttribute JobMatchRequest request) {
+        try {
+            return ResponseEntity.ok(jobMatchingService.findMatches(request));
+        } catch (IllegalArgumentException e) {
+            return respondError("Vui lòng tải lên CV PDF hoặc DOCX hợp lệ.");
+        }
     }
 
     @GetMapping("/evaluate")

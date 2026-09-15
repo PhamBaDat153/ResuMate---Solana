@@ -22,6 +22,11 @@ export const evaluationRoutes = {
     description: 'Evaluate a CV against a job description',
     mimeType: 'application/json',
   },
+  '/api/jobs/match': {
+    accepts: [{ scheme: 'exact', price: '$0.10', network, payTo: process.env.NEXT_PUBLIC_RECEIVER_ADDRESS ?? '' }],
+    description: 'Find suitable jobs from live job APIs using AI CV validation',
+    mimeType: 'application/json',
+  },
 }
 
 const facilitator = new HTTPFacilitatorClient({
