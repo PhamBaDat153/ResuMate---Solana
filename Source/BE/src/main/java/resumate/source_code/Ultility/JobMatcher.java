@@ -21,13 +21,22 @@ public class JobMatcher {
     private final JobAggregator jobAggregator;
     private final String apiKey;
     private final String model;
+    private final RestClient xkiroClient;
+    private final String xkiroApiKey;
+    private final String xkiroModel;
 
     public JobMatcher(JobAggregator jobAggregator,
-                      @Value("${gemini.api-key:}") String apiKey,
-                      @Value("${gemini.model:gemini-3.6-flash}") String model) {
+                      @Value("${gemini.api-key}") String apiKey,
+                      @Value("${gemini.model}") String model,
+                      @Value("${xkiro.base-url:https://api.xkiro.com/v1}") String xkiroBaseUrl,
+                      @Value("${xkiro.api-key:}") String xkiroApiKey,
+                      @Value("${xkiro.model:deepseek/deepseek-v4.1-flash:free}") String xkiroModel) {
         this.jobAggregator = jobAggregator;
         this.apiKey = apiKey;
         this.model = model;
+        this.xkiroClient = RestClient.builder().baseUrl(xkiroBaseUrl).build();
+        this.xkiroApiKey = xkiroApiKey;
+        this.xkiroModel = xkiroModel;
     }
 
     public JobMatchResponse match(String cv, String location, String workMode, String targetRole, int minimumMatchScore) {
@@ -36,29 +45,72 @@ public class JobMatcher {
         if (jobs.isEmpty()) return JobMatchResponse.builder()
                 .profileSummary("No live jobs matched the selected filters. Try a broader role or location.")
                 .matches(List.of()).build();
-        if (apiKey.isBlank()) return JobMatchResponse.builder()
-                .profileSummary("Live jobs were found, but AI validation is not configured yet.")
-                .matches(List.of()).build();
+        String prompt = buildPrompt(cv, jobs, criteria, minimumMatchScore);
 
-        try {
-            String prompt = buildPrompt(cv, jobs, criteria, minimumMatchScore);
-            Map<String, Object> body = Map.of("contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))),
-                    "generationConfig", Map.of("responseMimeType", "application/json"));
-            String response = geminiClient.post().uri("/v1beta/models/{model}:generateContent?key={key}", model, apiKey)
-                    .contentType(MediaType.APPLICATION_JSON).body(body).retrieve().body(String.class);
-            JsonNode root = objectMapper.readTree(response);
-            String text = root.path("candidates").get(0).path("content").path("parts").get(0).path("text").asText().trim();
-            JobMatchResponse result = objectMapper.readValue(stripCodeFence(text), JobMatchResponse.class);
-            List<JobMatchResponse.JobMatch> matches = result.getMatches() == null ? List.of() : result.getMatches().stream()
-                    .filter(match -> match.getMatchScore() >= minimumMatchScore)
-                    .sorted((left, right) -> Integer.compare(right.getMatchScore(), left.getMatchScore()))
-                    .limit(6).toList();
-            result.setMatches(matches);
-            if (matches.isEmpty()) result.setProfileSummary("No live jobs reached the minimum suitability score of " + minimumMatchScore + "%.");
-            return result;
-        } catch (Exception ignored) {
-            return JobMatchResponse.builder().profileSummary("AI validation is temporarily unavailable. Please try again shortly.").matches(List.of()).build();
+        if (!apiKey.isBlank()) {
+            try {
+                System.out.println("[JOB_SEARCH] 5/6 Sending CV and " + jobs.size() + " jobs to Gemini model " + model);
+                String response = geminiClient.post().uri("/v1beta/models/{model}:generateContent?key={key}", model, apiKey)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(Map.of("contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))),
+                                "generationConfig", Map.of("responseMimeType", "application/json")))
+                        .retrieve().body(String.class);
+                JsonNode root = objectMapper.readTree(response);
+                JsonNode candidates = root.path("candidates");
+                if (!candidates.isArray() || candidates.isEmpty()) {
+                    throw new IllegalStateException(root.path("error").path("message").asText("No candidates returned by Gemini"));
+                }
+                String text = candidates.get(0).path("content").path("parts").get(0).path("text").asText().trim();
+                if (text.isBlank()) throw new IllegalStateException("Gemini returned an empty response");
+                return filterMatches(objectMapper.readValue(stripCodeFence(text), JobMatchResponse.class), minimumMatchScore, "Gemini");
+            } catch (Exception exception) {
+                System.err.println("Gemini job matching failed with model " + model + ": " + exception.getMessage());
+            }
+        } else {
+            System.err.println("Gemini job matching skipped because GEMINI_API_KEY is empty");
         }
+
+        if (!xkiroApiKey.isBlank()) {
+            try {
+                System.out.println("[JOB_SEARCH] 5/6 Gemini unavailable; using xKiro model " + xkiroModel);
+                Map<String, Object> body = Map.of(
+                        "model", xkiroModel,
+                        "response_format", Map.of("type", "json_object"),
+                        "messages", List.of(Map.of("role", "system", "content", "Return only valid JSON matching the requested schema."),
+                                Map.of("role", "user", "content", prompt)));
+                String response = xkiroClient.post().uri("/chat/completions")
+                        .header("Authorization", "Bearer " + xkiroApiKey)
+                        .contentType(MediaType.APPLICATION_JSON).body(body).retrieve().body(String.class);
+                JsonNode root = objectMapper.readTree(response);
+                JsonNode choices = root.path("choices");
+                if (!choices.isArray() || choices.isEmpty()) {
+                    throw new IllegalStateException(root.path("error").path("message").asText("No choices returned by xKiro"));
+                }
+                String text = choices.get(0).path("message").path("content").asText().trim();
+                if (text.isBlank()) throw new IllegalStateException("xKiro returned an empty response");
+                return filterMatches(objectMapper.readValue(stripCodeFence(text), JobMatchResponse.class), minimumMatchScore, "xKiro");
+            } catch (Exception exception) {
+                System.err.println("xKiro job matching failed with model " + xkiroModel + ": " + exception.getMessage());
+            }
+        } else {
+            System.err.println("xKiro fallback skipped because XKIRO_API_KEY is empty");
+        }
+
+        return JobMatchResponse.builder()
+                .profileSummary("AI validation failed. Configure GEMINI_API_KEY or XKIRO_API_KEY in BE/.env, then try again.")
+                .matches(List.of()).build();
+    }
+
+    private JobMatchResponse filterMatches(JobMatchResponse result, int minimumMatchScore, String provider) {
+        List<JobMatchResponse.JobMatch> matches = result.getMatches() == null ? List.of() : result.getMatches().stream()
+                .filter(match -> match.getMatchScore() >= minimumMatchScore)
+                .sorted((left, right) -> Integer.compare(right.getMatchScore(), left.getMatchScore()))
+                .limit(6).toList();
+        result.setMatches(matches);
+        System.out.println("[JOB_SEARCH] " + provider + " returned " + matches.size()
+                + " matches; applying minimum score " + minimumMatchScore);
+        if (matches.isEmpty()) result.setProfileSummary("No live jobs reached the minimum suitability score of " + minimumMatchScore + "%.");
+        return result;
     }
 
     private String buildPrompt(String cv, List<JobListing> jobs, JobSearchCriteria criteria, int minimumMatchScore) {

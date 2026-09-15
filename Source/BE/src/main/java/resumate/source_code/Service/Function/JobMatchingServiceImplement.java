@@ -25,9 +25,14 @@ public class JobMatchingServiceImplement implements JobMatchingService {
 
     @Override
     public JobMatchResponse findMatches(JobMatchRequest request) {
+        long startedAt = System.currentTimeMillis();
+        System.out.println("[JOB_SEARCH] 1/6 Request received");
         if (request.getCv() == null || request.getCv().isEmpty()) {
             throw new IllegalArgumentException("CV is missing");
         }
+        System.out.println("[JOB_SEARCH] CV file: " + request.getCv().getOriginalFilename()
+                + " (" + request.getCv().getSize() + " bytes)");
+        System.out.println("[JOB_SEARCH] 2/6 Extracting CV text");
         String cvText = extractText(request.getCv());
         if (cvText.isBlank()) {
             throw new IllegalArgumentException("CV contains no readable text");
@@ -36,7 +41,20 @@ public class JobMatchingServiceImplement implements JobMatchingService {
         if (minimumScore < 0 || minimumScore > 100) {
             throw new IllegalArgumentException("Minimum match score must be between 0 and 100");
         }
-        return jobMatcher.match(cvText, request.getLocation(), request.getWorkMode(), request.getTargetRole(), minimumScore);
+        System.out.println("[JOB_SEARCH] CV extracted: " + cvText.length() + " characters");
+        System.out.println("[JOB_SEARCH] Filters: role=" + value(request.getTargetRole())
+                + ", location=" + value(request.getLocation())
+                + ", workMode=" + value(request.getWorkMode())
+                + ", minimumScore=" + minimumScore);
+        System.out.println("[JOB_SEARCH] 3/6 Fetching live jobs from providers");
+        JobMatchResponse result = jobMatcher.match(cvText, request.getLocation(), request.getWorkMode(), request.getTargetRole(), minimumScore);
+        System.out.println("[JOB_SEARCH] 6/6 Completed in " + (System.currentTimeMillis() - startedAt)
+                + " ms; returned " + (result.getMatches() == null ? 0 : result.getMatches().size()) + " matches");
+        return result;
+    }
+
+    private String value(String value) {
+        return value == null || value.isBlank() ? "any" : value;
     }
 
     private String extractText(MultipartFile file) {

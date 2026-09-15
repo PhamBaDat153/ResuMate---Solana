@@ -18,59 +18,88 @@ public class GeminiEvaluatorImplement implements LLMEvaluator {
     private final ObjectMapper objectMapper;
     private final String apiKey;
     private final String model;
+    private final RestClient xkiroClient;
+    private final String xkiroApiKey;
+    private final String xkiroModel;
 
-    public GeminiEvaluatorImplement(@Value("${gemini.api-key:}") String apiKey,
-                                    @Value("${gemini.model:gemini-3.6-flash}") String model) {
+    public GeminiEvaluatorImplement(@Value("${gemini.api-key}") String apiKey,
+                                    @Value("${gemini.model}") String model,
+                                    @Value("${xkiro.base-url:https://api.xkiro.com/v1}") String xkiroBaseUrl,
+                                    @Value("${xkiro.api-key:}") String xkiroApiKey,
+                                    @Value("${xkiro.model:deepseek/deepseek-v4.1-flash:free}") String xkiroModel) {
         this.restClient = RestClient.builder()
                 .baseUrl("https://generativelanguage.googleapis.com")
                 .build();
         this.objectMapper = new ObjectMapper();
         this.apiKey = apiKey;
         this.model = model;
+        this.xkiroClient = RestClient.builder().baseUrl(xkiroBaseUrl).build();
+        this.xkiroApiKey = xkiroApiKey;
+        this.xkiroModel = xkiroModel;
     }
 
     @Override
     public EvaluateResponse evaluate(String cvText, String jdText) {
         String prompt = buildPrompt(cvText, jdText);
-
-        Map<String, Object> body = Map.of(
-                "contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))),
-                "generationConfig", Map.of("responseMimeType", "application/json")
-        );
-
-        try {
-            String responseJson = restClient.post()
-                    .uri("/v1beta/models/{model}:generateContent?key={key}", model, apiKey)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(body)
-                    .retrieve()
-                    .body(String.class);
-
-            return parse(responseJson);
-        } catch (Exception e) {
-            System.out.println("LLM evaluation failed: " + e.getMessage());
-            return fallback();
+        if (!apiKey.isBlank()) {
+            try {
+                Map<String, Object> body = Map.of(
+                        "contents", List.of(Map.of("parts", List.of(Map.of("text", prompt)))),
+                        "generationConfig", Map.of("responseMimeType", "application/json"));
+                String responseJson = restClient.post()
+                        .uri("/v1beta/models/{model}:generateContent?key={key}", model, apiKey)
+                        .contentType(MediaType.APPLICATION_JSON).body(body).retrieve().body(String.class);
+                return parseGemini(responseJson);
+            } catch (Exception e) {
+                System.err.println("Gemini CV evaluation failed with model " + model + ": " + e.getMessage());
+            }
         }
+
+        if (!xkiroApiKey.isBlank()) {
+            try {
+                Map<String, Object> body = Map.of(
+                        "model", xkiroModel,
+                        "response_format", Map.of("type", "json_object"),
+                        "messages", List.of(
+                                Map.of("role", "system", "content", "Return only valid JSON matching the requested schema."),
+                                Map.of("role", "user", "content", prompt)));
+                String responseJson = xkiroClient.post().uri("/chat/completions")
+                        .header("Authorization", "Bearer " + xkiroApiKey)
+                        .contentType(MediaType.APPLICATION_JSON).body(body).retrieve().body(String.class);
+                return parseXkiro(responseJson);
+            } catch (Exception e) {
+                System.err.println("xKiro CV evaluation failed with model " + xkiroModel + ": " + e.getMessage());
+            }
+        }
+        return fallback();
     }
 
-    private EvaluateResponse parse(String responseJson) {
-        try {
-            JsonNode root = objectMapper.readTree(responseJson);
-            String text = root.path("candidates").get(0)
-                    .path("content").path("parts").get(0)
-                    .path("text").asText();
-
-            String cleaned = text.trim();
-            if (cleaned.startsWith("```")) {
-                cleaned = cleaned.replaceFirst("(?s)^```(?:json)?\\s*", "");
-                cleaned = cleaned.replaceFirst("(?s)```\\s*$", "");
-            }
-
-            return objectMapper.readValue(cleaned, EvaluateResponse.class);
-        } catch (Exception e) {
-            System.out.println("Failed to parse Gemini response: " + e.getMessage());
-            return fallback();
+    private EvaluateResponse parseGemini(String responseJson) throws Exception {
+        JsonNode root = objectMapper.readTree(responseJson);
+        JsonNode candidates = root.path("candidates");
+        if (!candidates.isArray() || candidates.isEmpty()) {
+            throw new IllegalStateException(root.path("error").path("message").asText("No candidates returned by Gemini"));
         }
+        return parseResponse(candidates.get(0).path("content").path("parts").get(0).path("text").asText());
+    }
+
+    private EvaluateResponse parseXkiro(String responseJson) throws Exception {
+        JsonNode root = objectMapper.readTree(responseJson);
+        JsonNode choices = root.path("choices");
+        if (!choices.isArray() || choices.isEmpty()) {
+            throw new IllegalStateException(root.path("error").path("message").asText("No choices returned by xKiro"));
+        }
+        return parseResponse(choices.get(0).path("message").path("content").asText());
+    }
+
+    private EvaluateResponse parseResponse(String text) throws Exception {
+        String cleaned = text == null ? "" : text.trim();
+        if (cleaned.startsWith("```")) {
+            cleaned = cleaned.replaceFirst("(?s)^```(?:json)?\\s*", "");
+            cleaned = cleaned.replaceFirst("(?s)```\\s*$", "");
+        }
+        if (cleaned.isBlank()) throw new IllegalStateException("AI returned an empty response");
+        return objectMapper.readValue(cleaned, EvaluateResponse.class);
     }
 
     private EvaluateResponse fallback() {

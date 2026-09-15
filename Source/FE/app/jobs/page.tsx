@@ -8,6 +8,14 @@ import { useConnectedWallet } from '@solana/kit-plugin-wallet/react'
 import type { SolanaWalletClient } from '@/components/solana-provider'
 import { createPaymentFetch } from '@/lib/x402Wallet'
 
+const SEARCH_STEPS = [
+  'Đọc nội dung CV của bạn',
+  'Tìm việc từ các nguồn công khai',
+  'Loại bỏ tin trùng lặp',
+  'AI đối chiếu CV với yêu cầu công việc',
+  'Lọc theo mức độ phù hợp tối thiểu',
+]
+
 export default function JobsPage() {
   const [cv, setCv] = useState<File | null>(null)
   const [location, setLocation] = useState('')
@@ -17,6 +25,7 @@ export default function JobsPage() {
   const [result, setResult] = useState<JobMatchResult | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [activeStep, setActiveStep] = useState(-1)
   const walletClient = useClient<SolanaWalletClient>()
   const connectedWallet = useConnectedWallet(walletClient)
 
@@ -24,16 +33,23 @@ export default function JobsPage() {
     event.preventDefault()
     if (!cv) { setError('Vui lòng chọn CV PDF hoặc DOCX.'); return }
     if (!connectedWallet?.signer) { setError('Vui lòng kết nối ví Solana để thanh toán tìm việc bằng AI.'); return }
-    setError(''); setLoading(true); setResult(null)
+    setError(''); setLoading(true); setResult(null); setActiveStep(0)
     const data = new FormData()
     data.append('cv', cv)
     data.append('location', location)
     data.append('workMode', workMode)
     data.append('targetRole', targetRole)
     data.append('minimumMatchScore', minimumMatchScore)
-    try { setResult(await findJobMatches(data, createPaymentFetch(connectedWallet.signer))) }
+    const progressTimer = window.setInterval(() => {
+      setActiveStep((step) => Math.min(step + 1, SEARCH_STEPS.length - 1))
+    }, 1800)
+    try {
+      const matches = await findJobMatches(data, createPaymentFetch(connectedWallet.signer))
+      setActiveStep(SEARCH_STEPS.length)
+      setResult(matches)
+    }
     catch (cause) { setError(cause instanceof Error ? cause.message : 'Không thể tìm việc phù hợp.') }
-    finally { setLoading(false) }
+    finally { window.clearInterval(progressTimer); setLoading(false) }
   }
 
   return (
@@ -58,10 +74,26 @@ export default function JobsPage() {
           </div>
         </form>
 
+        {loading && <section className="mt-5 rounded-2xl border border-border-low bg-card p-5" role="status" aria-live="polite">
+          <div className="mb-4 flex items-center justify-between gap-4">
+            <div><p className="text-sm font-semibold">Đang tìm việc phù hợp...</p><p className="mt-1 text-xs text-muted">Quy trình AI đang được thực hiện</p></div>
+            <span className="text-sm font-semibold">{Math.min(activeStep + 1, SEARCH_STEPS.length)}/{SEARCH_STEPS.length}</span>
+          </div>
+          <ol className="grid gap-2 sm:grid-cols-5">
+            {SEARCH_STEPS.map((step, index) => {
+              const completed = index < activeStep
+              const current = index === activeStep
+              return <li key={step} className={`rounded-xl border px-3 py-3 text-xs transition ${completed ? 'border-foreground/30 bg-cream text-foreground' : current ? 'border-foreground bg-foreground text-background' : 'border-border-low text-muted'}`}>
+                <span className="mr-2 font-bold">{completed ? '✓' : index + 1}</span>{step}
+              </li>
+            })}
+          </ol>
+        </section>}
+
         {error && <p role="alert" className="mt-5 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm">{error}</p>}
         {result && <section className="mt-10">
           <div className="mb-6"><p className="text-xs font-semibold uppercase tracking-widest text-muted">Hồ sơ được nhận diện</p><p className="mt-2 max-w-3xl leading-7">{result.profileSummary}</p></div>
-          {result.matches.length === 0 ? <div className="rounded-2xl border border-border-low bg-card p-6 text-muted">Chưa có kết quả. Hãy kiểm tra cấu hình Gemini hoặc thử lại.</div> :
+          {result.matches.length === 0 ? <div className="rounded-2xl border border-border-low bg-card p-6 text-muted">{result.profileSummary}</div> :
             <div className="grid gap-4 lg:grid-cols-2">{result.matches.map(job => <article key={`${job.company}-${job.title}`} className="rounded-2xl border border-border-low bg-card p-6">
               <div className="flex items-start justify-between gap-5"><div><p className="text-sm text-muted">{job.company}</p><h2 className="mt-1 text-xl font-semibold">{job.title}</h2></div><span className="rounded-full bg-foreground px-3 py-1 text-sm font-bold text-background">{job.matchScore}%</span></div>
               <p className="mt-3 text-sm text-muted">{job.location} · {job.workMode} · {job.salary}</p><p className="mt-4 text-sm leading-6">{job.reason}</p>

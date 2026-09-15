@@ -11,9 +11,13 @@ D:\Projects\Github\ResuMate---Solana\Source\BE\src\main\java\resumate\source_cod
 D:\Projects\Github\ResuMate---Solana\Source\BE\src\main\java\resumate\source_code\Service\Function\CVEvaluateServiceImplement.java
 D:\Projects\Github\ResuMate---Solana\Source\BE\src\main\java\resumate\source_code\Service\Function\JobMatchingService.java
 D:\Projects\Github\ResuMate---Solana\Source\BE\src\main\java\resumate\source_code\Service\Function\JobMatchingServiceImplement.java
+D:\Projects\Github\ResuMate---Solana\Source\BE\src\main\java\resumate\source_code\Service\HimalayasJobProvider.java
 D:\Projects\Github\ResuMate---Solana\Source\BE\src\main\java\resumate\source_code\Service\JobAggregator.java
+D:\Projects\Github\ResuMate---Solana\Source\BE\src\main\java\resumate\source_code\Service\JobicyJobProvider.java
 D:\Projects\Github\ResuMate---Solana\Source\BE\src\main\java\resumate\source_code\Service\JobProvider.java
+D:\Projects\Github\ResuMate---Solana\Source\BE\src\main\java\resumate\source_code\Service\RemoteOkJobProvider.java
 D:\Projects\Github\ResuMate---Solana\Source\BE\src\main\java\resumate\source_code\Service\RemotiveJobProvider.java
+D:\Projects\Github\ResuMate---Solana\Source\BE\src\main\java\resumate\source_code\Service\WeWorkRemotelyJobProvider.java
 D:\Projects\Github\ResuMate---Solana\Source\BE\src\main\java\resumate\source_code\SourceCodeApplication.java
 D:\Projects\Github\ResuMate---Solana\Source\BE\src\main\java\resumate\source_code\Ultility\GeminiEvaluatorImplement.java
 D:\Projects\Github\ResuMate---Solana\Source\BE\src\main\java\resumate\source_code\Ultility\JobMatcher.java

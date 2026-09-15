@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.beans.factory.annotation.Value;
 import resumate.source_code.DTO.EvaluateRequest;
 import resumate.source_code.DTO.EvaluateResponse;
 import resumate.source_code.Service.Function.CVEvaluateService;
@@ -19,14 +21,23 @@ public class EvaluateController {
 
     private final CVEvaluateService cvEvaluateService;
     private final JobMatchingService jobMatchingService;
+    private final String jobDiscoveryToken;
 
-    public EvaluateController(CVEvaluateService cvEvaluateService, JobMatchingService jobMatchingService) {
+    public EvaluateController(CVEvaluateService cvEvaluateService,
+                              JobMatchingService jobMatchingService,
+                              @Value("${jobs.discovery.internal-token:}") String jobDiscoveryToken) {
         this.cvEvaluateService = cvEvaluateService;
         this.jobMatchingService = jobMatchingService;
+        this.jobDiscoveryToken = jobDiscoveryToken;
     }
 
     @PostMapping("/jobs/match")
-    public ResponseEntity<?> matchJobs(@ModelAttribute JobMatchRequest request) {
+    public ResponseEntity<?> matchJobs(
+            @ModelAttribute JobMatchRequest request,
+            @RequestHeader(value = "X-ResuMate-Job-Token", required = false) String requestToken) {
+        if (jobDiscoveryToken.isBlank() || !jobDiscoveryToken.equals(requestToken)) {
+            return ResponseEntity.status(403).body(Map.of("error", "Job discovery requires a completed payment."));
+        }
         try {
             return ResponseEntity.ok(jobMatchingService.findMatches(request));
         } catch (IllegalArgumentException e) {

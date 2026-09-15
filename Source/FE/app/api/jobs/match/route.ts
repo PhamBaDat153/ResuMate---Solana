@@ -3,11 +3,16 @@ import { withX402 } from '@x402/next'
 import { evaluationRoutes, x402Server } from '@/lib/x402Server'
 
 const backendUrl = process.env.VITE_BACKEND_URL ?? 'http://localhost:8080'
+const internalToken = process.env.JOB_DISCOVERY_INTERNAL_TOKEN ?? ''
 
 async function matchJobs(request: NextRequest) {
   try {
     const formData = await request.formData()
-    const response = await fetch(`${backendUrl}/jobs/match`, { method: 'POST', body: formData })
+    const response = await fetch(`${backendUrl}/jobs/match`, {
+      method: 'POST',
+      body: formData,
+      headers: { 'X-ResuMate-Job-Token': internalToken },
+    })
     const body = await response.json().catch(() => ({ error: 'Phản hồi không hợp lệ.' }))
     return NextResponse.json(body, { status: response.status })
   } catch {
