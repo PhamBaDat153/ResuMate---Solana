@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { href: '/', label: 'Home' },
   { href: '/evaluate', label: 'Đánh giá CV' },
   { href: '/jobs', label: 'Tìm việc bằng AI' },
+  { href: '/profile', label: 'Profile on-chain' },
 ] as const
 
 export function Sidebar() {
