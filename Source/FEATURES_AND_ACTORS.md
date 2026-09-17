@@ -55,7 +55,7 @@ Frontend, backend, storage va indexer khong co quyen dac biet neu khong co signe
 
 ## 4. Chi tiet tinh nang theo actor
 
-## 4.1 Resume Owner
+## 4.1 Resume Owner - xong
 
 ### Tao profile
 
@@ -75,7 +75,7 @@ Profile theo doi:
 
 Profile la dieu kien dau vao cho viec tao resume va nhan credential.
 
-### Tao resume
+### Tao resume - xong
 
 **Trang thai:** Da hoan thanh.
 
@@ -95,7 +95,7 @@ Resume moi co:
 
 `resume_id` phai bang `profile.resume_count` hien tai. Cach nay dam bao ID duoc cap tuan tu va tranh trung PDA.
 
-### Cong bo version resume
+### Cong bo version resume - xong
 
 **Trang thai:** Da hoan thanh.
 
