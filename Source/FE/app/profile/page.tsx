@@ -12,12 +12,16 @@ import {
 import type { SolanaWalletClient } from '@/components/solana-provider'
 import {
   createProfile,
+  createResume,
   deriveProfileAddress,
+  deriveResumeAddress,
   fetchProfile,
+  type ResumeAccount,
   type UserProfile,
 } from '@/lib/profileProgram'
 
 type ProfileState = 'idle' | 'loading' | 'missing' | 'existing' | 'creating' | 'error'
+type ResumeState = 'idle' | 'loading' | 'ready' | 'creating' | 'refreshing' | 'success' | 'conflict' | 'error'
 
 export function getProfileError(error: unknown): string {
   const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase()
@@ -36,6 +40,29 @@ export function getProfileError(error: unknown): string {
   return error instanceof Error ? error.message : 'Không thể tạo profile. Vui lòng thử lại.'
 }
 
+export function getResumeError(error: unknown): { message: string; conflict: boolean } {
+  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase()
+  if (message.includes('reject') || message.includes('cancel') || message.includes('declin')) {
+    return { message: 'Bạn đã từ chối ký giao dịch tạo resume. Hãy thử lại khi sẵn sàng.', conflict: false }
+  }
+  if (message.includes('insufficient') || message.includes('fund') || message.includes('lamport')) {
+    return { message: 'Ví không đủ SOL để trả phí và rent tạo resume.', conflict: false }
+  }
+  if (message.includes('invalidid') || message.includes('already') || message.includes('exist') || message.includes('in use')) {
+    return { message: 'Resume ID đã thay đổi hoặc account đã tồn tại. Trạng thái profile đã được làm mới.', conflict: true }
+  }
+  if (message.includes('không hợp lệ') || message.includes('không khớp') || message.includes('verify')) {
+    return { message: 'Dữ liệu resume on-chain không hợp lệ hoặc không khớp yêu cầu. Hãy tải lại trạng thái.', conflict: false }
+  }
+  if (message.includes('network') || message.includes('rpc') || message.includes('blockhash') || message.includes('program')) {
+    return { message: 'Không tìm thấy chương trình ResuMate trên network/RPC hiện tại. Kiểm tra cấu hình rồi thử lại.', conflict: false }
+  }
+  return {
+    message: error instanceof Error ? error.message : 'Không thể tạo resume. Vui lòng thử lại.',
+    conflict: false,
+  }
+}
+
 export default function ProfilePage() {
   const client = useClient<SolanaWalletClient>()
   const wallets = useWallets(client)
@@ -46,12 +73,19 @@ export default function ProfilePage() {
   const [profileAddress, setProfileAddress] = useState<string | null>(null)
   const [state, setState] = useState<ProfileState>('idle')
   const [error, setError] = useState<string | null>(null)
+  const [nextResumeAddress, setNextResumeAddress] = useState<string | null>(null)
+  const [createdResume, setCreatedResume] = useState<ResumeAccount | null>(null)
+  const [resumeState, setResumeState] = useState<ResumeState>('idle')
+  const [resumeError, setResumeError] = useState<string | null>(null)
 
   const loadProfile = useCallback(async () => {
     if (!connectedWallet) {
       setProfile(null)
       setProfileAddress(null)
       setState('idle')
+      setNextResumeAddress(null)
+      setCreatedResume(null)
+      setResumeState('idle')
       return
     }
 
@@ -64,6 +98,14 @@ export default function ProfilePage() {
       const currentProfile = await fetchProfile(client, owner)
       setProfile(currentProfile)
       setState(currentProfile ? 'existing' : 'missing')
+      if (currentProfile) {
+        setResumeState('loading')
+        setNextResumeAddress(await deriveResumeAddress(owner, currentProfile.resumeCount))
+        setResumeState('ready')
+      } else {
+        setNextResumeAddress(null)
+        setResumeState('idle')
+      }
     } catch (loadError) {
       setProfile(null)
       setState('error')
@@ -88,6 +130,46 @@ export default function ProfilePage() {
       setState('error')
       setError(getProfileError(createError))
     }
+  }
+
+  const handleCreateResume = async () => {
+    if (!connectedWallet?.signer || !profile || resumeState !== 'ready') return
+
+    const owner = address(connectedWallet.account.address) as Address
+    const resumeId = profile.resumeCount
+    setResumeState('creating')
+    setResumeError(null)
+    setCreatedResume(null)
+    try {
+      const result = await createResume(client, owner, resumeId, () => setResumeState('refreshing'))
+      setProfile(result.profile)
+      setCreatedResume(result.resume)
+      setNextResumeAddress(await deriveResumeAddress(owner, result.profile.resumeCount))
+      setResumeState('success')
+    } catch (createError) {
+      const mappedError = getResumeError(createError)
+      if (mappedError.conflict) {
+        setResumeState('conflict')
+        try {
+          const refreshedProfile = await fetchProfile(client, owner)
+          setProfile(refreshedProfile)
+          if (refreshedProfile) {
+            setNextResumeAddress(await deriveResumeAddress(owner, refreshedProfile.resumeCount))
+          }
+        } catch {
+          // Keep the original transaction conflict as the actionable error.
+        }
+      } else {
+        setResumeState('error')
+      }
+      setResumeError(mappedError.message)
+    }
+  }
+
+  const resetResumeAction = async () => {
+    setCreatedResume(null)
+    setResumeError(null)
+    await loadProfile()
   }
 
   return (
@@ -157,12 +239,68 @@ export default function ProfilePage() {
               )}
               {state === 'creating' && <p className="text-muted" role="status">Đang chờ ví ký và xác nhận giao dịch...</p>}
               {state === 'existing' && profile && (
-                <dl className="grid gap-4 sm:grid-cols-2">
-                  <div><dt className="text-sm text-muted">Profile PDA</dt><dd className="mt-1 break-all font-mono text-xs">{profile.address}</dd></div>
-                  <div><dt className="text-sm text-muted">Owner</dt><dd className="mt-1 break-all font-mono text-xs">{profile.owner}</dd></div>
-                  <div><dt className="text-sm text-muted">Resume count</dt><dd className="mt-1 text-xl font-semibold">{profile.resumeCount.toString()}</dd></div>
-                  <div><dt className="text-sm text-muted">Credential count</dt><dd className="mt-1 text-xl font-semibold">{profile.credentialCount.toString()}</dd></div>
-                </dl>
+                <div className="flex flex-col gap-8">
+                  <dl className="grid gap-4 sm:grid-cols-2">
+                    <div><dt className="text-sm text-muted">Profile PDA</dt><dd className="mt-1 break-all font-mono text-xs">{profile.address}</dd></div>
+                    <div><dt className="text-sm text-muted">Owner</dt><dd className="mt-1 break-all font-mono text-xs">{profile.owner}</dd></div>
+                    <div><dt className="text-sm text-muted">Resume count</dt><dd className="mt-1 text-xl font-semibold">{profile.resumeCount.toString()}</dd></div>
+                    <div><dt className="text-sm text-muted">Credential count</dt><dd className="mt-1 text-xl font-semibold">{profile.credentialCount.toString()}</dd></div>
+                  </dl>
+
+                  <section className="border-t border-border-low pt-6" aria-labelledby="create-resume-title">
+                    <h2 id="create-resume-title" className="text-xl font-semibold">Tạo resume on-chain</h2>
+                    <p className="mt-2 text-sm leading-6 text-muted">
+                      Bước này chỉ tạo container resume riêng tư trên Solana. Nội dung CV, hash và URI chỉ được thêm ở bước công bố phiên bản riêng biệt.
+                    </p>
+
+                    {(resumeState === 'loading' || resumeState === 'creating' || resumeState === 'refreshing') && (
+                      <p className="mt-4 text-sm text-muted" role="status">
+                        {resumeState === 'loading'
+                          ? 'Đang xác định Resume PDA tiếp theo...'
+                          : resumeState === 'creating'
+                            ? 'Đang chờ ví ký và xác nhận giao dịch tạo resume...'
+                            : 'Giao dịch đã gửi, đang xác minh profile và Resume PDA...'}
+                      </p>
+                    )}
+
+                    {(resumeState === 'ready' || resumeState === 'success') && nextResumeAddress && (
+                      <div className="mt-4 rounded-xl border border-border-low bg-cream/40 p-4">
+                        <p className="text-sm text-muted">Resume tiếp theo</p>
+                        <p className="mt-1 font-semibold">ID {profile.resumeCount.toString()}</p>
+                        <p className="mt-2 break-all font-mono text-xs text-muted">PDA: {nextResumeAddress}</p>
+                        <button
+                          type="button"
+                          onClick={handleCreateResume}
+                          disabled={resumeState !== 'ready' || !connectedWallet.signer}
+                          className="mt-4 rounded-lg bg-foreground px-4 py-2 font-medium text-background transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
+                        >
+                          Tạo resume
+                        </button>
+                      </div>
+                    )}
+
+                    {resumeState === 'success' && createdResume && (
+                      <div className="mt-4 rounded-xl border border-border-low p-4" role="status">
+                        <p className="font-semibold">Resume đã được xác minh on-chain</p>
+                        <dl className="mt-3 grid gap-3 sm:grid-cols-2">
+                          <div><dt className="text-xs text-muted">Resume PDA</dt><dd className="break-all font-mono text-xs">{createdResume.address}</dd></div>
+                          <div><dt className="text-xs text-muted">Owner</dt><dd className="break-all font-mono text-xs">{createdResume.owner}</dd></div>
+                          <div><dt className="text-xs text-muted">Resume ID</dt><dd>{createdResume.resumeId.toString()}</dd></div>
+                          <div><dt className="text-xs text-muted">Profile resume count</dt><dd>{profile.resumeCount.toString()}</dd></div>
+                          <div><dt className="text-xs text-muted">Version</dt><dd>{createdResume.activeVersion.toString()} / {createdResume.versionCount.toString()}</dd></div>
+                          <div><dt className="text-xs text-muted">Visibility</dt><dd>{createdResume.isPublic ? 'Công khai' : 'Riêng tư'}</dd></div>
+                        </dl>
+                      </div>
+                    )}
+
+                    {(resumeState === 'conflict' || resumeState === 'error') && (
+                      <div className="mt-4 flex flex-col gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4" role="alert">
+                        <p>{resumeError}</p>
+                        <button type="button" onClick={() => void resetResumeAction()} className="w-fit rounded-lg border border-border-low px-4 py-2 text-sm font-medium hover:border-foreground/30">Tải lại trạng thái</button>
+                      </div>
+                    )}
+                  </section>
+                </div>
               )}
               {state === 'error' && (
                 <div className="flex flex-col gap-3" role="alert">
