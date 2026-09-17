@@ -1,1 +1,5 @@
 resumate\source_code\SourceCodeApplicationTests.class
+resumate\source_code\Service\ResumeStorageServiceTests.class
+resumate\source_code\Controller\ResumeUploadControllerTests.class
+resumate\source_code\Service\ResumeMetadataHasherTests.class
+resumate\source_code\Service\ResumeDocumentValidatorTests.class

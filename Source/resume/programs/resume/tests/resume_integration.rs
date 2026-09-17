@@ -14,7 +14,9 @@ const RESUME_SEED: &[u8] = b"resume";
 const RESUME_VERSION_SEED: &[u8] = b"resume-version";
 const CREATE_PROFILE_DISCRIMINATOR: [u8; 8] = [225, 205, 234, 143, 17, 186, 50, 220];
 const CREATE_RESUME_DISCRIMINATOR: [u8; 8] = [197, 76, 123, 247, 186, 23, 70, 255];
+const PUBLISH_VERSION_DISCRIMINATOR: [u8; 8] = [191, 46, 141, 231, 171, 173, 99, 160];
 const RESUME_ACCOUNT_DISCRIMINATOR: [u8; 8] = [185, 23, 118, 57, 225, 253, 34, 230];
+const VERSION_ACCOUNT_DISCRIMINATOR: [u8; 8] = [97, 166, 101, 168, 173, 67, 190, 183];
 
 fn profile_address(owner: &Address) -> Address {
     Address::find_program_address(&[PROFILE_SEED, owner.as_ref()], &PROGRAM_ID).0
@@ -57,6 +59,31 @@ fn create_resume_instruction(owner: &Address, profile: &Address, resume_id: u64)
             AccountMeta::new(*owner, true),
             AccountMeta::new(*profile, false),
             AccountMeta::new(resume_address(owner, resume_id), false),
+            AccountMeta::new_readonly(SYSTEM_PROGRAM_ID, false),
+        ],
+        data,
+    }
+}
+
+fn publish_version_instruction(
+    owner: &Address,
+    resume: &Address,
+    version: u64,
+    content_hash: [u8; 32],
+    metadata_hash: [u8; 32],
+    uri: &str,
+) -> Instruction {
+    let mut data = PUBLISH_VERSION_DISCRIMINATOR.to_vec();
+    data.extend_from_slice(&content_hash);
+    data.extend_from_slice(&metadata_hash);
+    data.extend_from_slice(&(uri.len() as u32).to_le_bytes());
+    data.extend_from_slice(uri.as_bytes());
+    Instruction {
+        program_id: PROGRAM_ID,
+        accounts: vec![
+            AccountMeta::new(*owner, true),
+            AccountMeta::new(*resume, false),
+            AccountMeta::new(resume_version_address(resume, version), false),
             AccountMeta::new_readonly(SYSTEM_PROGRAM_ID, false),
         ],
         data,
@@ -119,6 +146,50 @@ fn assert_resume_state(svm: &LiteSVM, owner: &Address, resume_id: u64) {
     assert!(svm
         .get_account(&resume_version_address(&resume, 0))
         .is_none());
+}
+
+fn resume_versions(svm: &LiteSVM, resume: &Address) -> (u64, u64) {
+    let account = svm.get_account(resume).expect("resume should exist");
+    (
+        u64::from_le_bytes(account.data[48..56].try_into().unwrap()),
+        u64::from_le_bytes(account.data[56..64].try_into().unwrap()),
+    )
+}
+
+fn assert_version(
+    svm: &LiteSVM,
+    owner: &Address,
+    resume: &Address,
+    number: u64,
+    content_hash: [u8; 32],
+    metadata_hash: [u8; 32],
+    uri: &str,
+) {
+    let account = svm
+        .get_account(&resume_version_address(resume, number))
+        .expect("version should exist");
+    assert_eq!(account.owner, PROGRAM_ID);
+    assert_eq!(account.data.len(), 358);
+    assert_eq!(&account.data[..8], &VERSION_ACCOUNT_DISCRIMINATOR);
+    assert_eq!(&account.data[8..40], owner.as_ref());
+    assert_eq!(&account.data[40..72], resume.as_ref());
+    assert_eq!(
+        u64::from_le_bytes(account.data[72..80].try_into().unwrap()),
+        number
+    );
+    assert_eq!(&account.data[80..112], &content_hash);
+    assert_eq!(&account.data[112..144], &metadata_hash);
+    let uri_len = u32::from_le_bytes(account.data[144..148].try_into().unwrap()) as usize;
+    assert_eq!(&account.data[148..148 + uri_len], uri.as_bytes());
+    let timestamp_offset = 148 + uri_len;
+    assert!(
+        i64::from_le_bytes(
+            account.data[timestamp_offset..timestamp_offset + 8]
+                .try_into()
+                .unwrap()
+        ) >= 0
+    );
+    assert_eq!(account.data[timestamp_offset + 8], 0);
 }
 
 fn setup() -> (LiteSVM, Keypair) {
@@ -202,5 +273,109 @@ fn rejects_a_profile_owned_by_another_wallet() {
     assert_eq!(profile_resume_count(&svm, &profile_owner.pubkey()), 0);
     assert!(svm
         .get_account(&resume_address(&attacker.pubkey(), 0))
+        .is_none());
+}
+
+#[test]
+fn publishes_append_only_resume_versions() {
+    let (mut svm, owner) = setup();
+    create_profile(&mut svm, &owner);
+    create_resume(&mut svm, &owner, 0).unwrap();
+    let resume = resume_address(&owner.pubkey(), 0);
+
+    let first_uri = "https://res.cloudinary.com/demo/raw/upload/v1/resume.pdf";
+    send_instruction(
+        &mut svm,
+        &owner,
+        publish_version_instruction(&owner.pubkey(), &resume, 0, [1; 32], [2; 32], first_uri),
+    )
+    .unwrap();
+    assert_version(
+        &svm,
+        &owner.pubkey(),
+        &resume,
+        0,
+        [1; 32],
+        [2; 32],
+        first_uri,
+    );
+    assert_eq!(resume_versions(&svm, &resume), (0, 1));
+
+    let second_uri = "https://res.cloudinary.com/demo/raw/upload/v2/resume.docx";
+    send_instruction(
+        &mut svm,
+        &owner,
+        publish_version_instruction(&owner.pubkey(), &resume, 1, [3; 32], [4; 32], second_uri),
+    )
+    .unwrap();
+    assert_version(
+        &svm,
+        &owner.pubkey(),
+        &resume,
+        0,
+        [1; 32],
+        [2; 32],
+        first_uri,
+    );
+    assert_version(
+        &svm,
+        &owner.pubkey(),
+        &resume,
+        1,
+        [3; 32],
+        [4; 32],
+        second_uri,
+    );
+    assert_eq!(resume_versions(&svm, &resume), (1, 2));
+}
+
+#[test]
+fn rejects_invalid_version_publications_without_state_changes() {
+    let (mut svm, owner) = setup();
+    create_profile(&mut svm, &owner);
+    create_resume(&mut svm, &owner, 0).unwrap();
+    let resume = resume_address(&owner.pubkey(), 0);
+
+    let empty_hash = publish_version_instruction(
+        &owner.pubkey(),
+        &resume,
+        0,
+        [0; 32],
+        [2; 32],
+        "https://example.com/cv.pdf",
+    );
+    assert!(send_instruction(&mut svm, &owner, empty_hash).is_err());
+    assert_eq!(resume_versions(&svm, &resume), (0, 0));
+
+    let long_uri = "x".repeat(201);
+    let invalid_uri =
+        publish_version_instruction(&owner.pubkey(), &resume, 0, [1; 32], [2; 32], &long_uri);
+    assert!(send_instruction(&mut svm, &owner, invalid_uri).is_err());
+    assert_eq!(resume_versions(&svm, &resume), (0, 0));
+    assert!(svm
+        .get_account(&resume_version_address(&resume, 0))
+        .is_none());
+}
+
+#[test]
+fn rejects_version_publication_by_non_owner() {
+    let (mut svm, owner) = setup();
+    let attacker = Keypair::new();
+    svm.airdrop(&attacker.pubkey(), 2_000_000_000).unwrap();
+    create_profile(&mut svm, &owner);
+    create_resume(&mut svm, &owner, 0).unwrap();
+    let resume = resume_address(&owner.pubkey(), 0);
+    let instruction = publish_version_instruction(
+        &attacker.pubkey(),
+        &resume,
+        0,
+        [1; 32],
+        [2; 32],
+        "https://example.com/cv.pdf",
+    );
+    assert!(send_instruction(&mut svm, &attacker, instruction).is_err());
+    assert_eq!(resume_versions(&svm, &resume), (0, 0));
+    assert!(svm
+        .get_account(&resume_version_address(&resume, 0))
         .is_none());
 }

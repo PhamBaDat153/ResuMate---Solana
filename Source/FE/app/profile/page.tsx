@@ -15,13 +15,26 @@ import {
   createResume,
   deriveProfileAddress,
   deriveResumeAddress,
+  fetchOwnedResumes,
   fetchProfile,
   type ResumeAccount,
   type UserProfile,
 } from '@/lib/profileProgram'
+import { UploadZone } from '@/components/upload-zone'
+import { uploadResumeDocument } from '@/lib/resumeUploadApi'
+import {
+  bytesToHex,
+  deriveResumeVersionAddress,
+  hashResumeMetadata,
+  publishResumeVersion,
+  sha256,
+  type PreparedResumeVersion,
+  type ResumeVersionAccount,
+} from '@/lib/resumeVersionProgram'
 
 type ProfileState = 'idle' | 'loading' | 'missing' | 'existing' | 'creating' | 'error'
 type ResumeState = 'idle' | 'loading' | 'ready' | 'creating' | 'refreshing' | 'success' | 'conflict' | 'error'
+type PublishState = 'idle' | 'hashing' | 'uploading' | 'prepared' | 'signing' | 'verifying' | 'success' | 'stale' | 'error'
 
 export function getProfileError(error: unknown): string {
   const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase()
@@ -63,6 +76,18 @@ export function getResumeError(error: unknown): { message: string; conflict: boo
   }
 }
 
+export function getPublishError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error)
+  const lower = message.toLowerCase()
+  if (lower.includes('reject') || lower.includes('cancel')) return 'Bạn đã từ chối ký. Bản upload đã chuẩn bị vẫn có thể được thử lại.'
+  if (lower.includes('insufficient') || lower.includes('lamport') || lower.includes('fund')) return 'Ví không đủ SOL để tạo ResumeVersion.'
+  if (lower.includes('stale') || lower.includes('version đã thay đổi') || lower.includes('already') || lower.includes('in use')) return 'Version của resume đã thay đổi; bản chuẩn bị đã stale và sẽ không được tự động gửi.'
+  if (lower.includes('cloudinary') || lower.includes('storage') || lower.includes('upload')) return `Không thể upload CV: ${message}`
+  if (lower.includes('hash') || lower.includes('uri') || lower.includes('url')) return message
+  if (lower.includes('rpc') || lower.includes('network') || lower.includes('program')) return 'Không thể xác minh chương trình trên network/RPC hiện tại.'
+  return message || 'Không thể công bố phiên bản resume.'
+}
+
 export default function ProfilePage() {
   const client = useClient<SolanaWalletClient>()
   const wallets = useWallets(client)
@@ -77,6 +102,14 @@ export default function ProfilePage() {
   const [createdResume, setCreatedResume] = useState<ResumeAccount | null>(null)
   const [resumeState, setResumeState] = useState<ResumeState>('idle')
   const [resumeError, setResumeError] = useState<string | null>(null)
+  const [ownedResumes, setOwnedResumes] = useState<ResumeAccount[]>([])
+  const [selectedResume, setSelectedResume] = useState<ResumeAccount | null>(null)
+  const [publishFile, setPublishFile] = useState<File | null>(null)
+  const [publicAcknowledged, setPublicAcknowledged] = useState(false)
+  const [preparedVersion, setPreparedVersion] = useState<PreparedResumeVersion | null>(null)
+  const [publishedVersion, setPublishedVersion] = useState<ResumeVersionAccount | null>(null)
+  const [publishState, setPublishState] = useState<PublishState>('idle')
+  const [publishError, setPublishError] = useState<string | null>(null)
 
   const loadProfile = useCallback(async () => {
     if (!connectedWallet) {
@@ -86,6 +119,8 @@ export default function ProfilePage() {
       setNextResumeAddress(null)
       setCreatedResume(null)
       setResumeState('idle')
+      setOwnedResumes([])
+      setSelectedResume(null)
       return
     }
 
@@ -102,6 +137,9 @@ export default function ProfilePage() {
         setResumeState('loading')
         setNextResumeAddress(await deriveResumeAddress(owner, currentProfile.resumeCount))
         setResumeState('ready')
+        const currentResumes = await fetchOwnedResumes(client, owner, currentProfile.resumeCount)
+        setOwnedResumes(currentResumes)
+        setSelectedResume((selected) => currentResumes.find((resume) => resume.address === selected?.address) ?? currentResumes[0] ?? null)
       } else {
         setNextResumeAddress(null)
         setResumeState('idle')
@@ -170,6 +208,67 @@ export default function ProfilePage() {
     setCreatedResume(null)
     setResumeError(null)
     await loadProfile()
+  }
+
+  const handlePublishFileChange = (file: File | null) => {
+    setPublishFile(file)
+    setPreparedVersion(null)
+    setPublishedVersion(null)
+    setPublishError(null)
+    setPublishState('idle')
+  }
+
+  const handlePrepareVersion = async () => {
+    if (!publishFile || !selectedResume || !publicAcknowledged) return
+    setPublishState('hashing')
+    setPublishError(null)
+    try {
+      const bytes = await new Response(publishFile).arrayBuffer()
+      const contentHash = await sha256(bytes)
+      const metadataHash = await hashResumeMetadata(publishFile.name, publishFile.type, publishFile.size)
+      setPublishState('uploading')
+      const upload = await uploadResumeDocument(publishFile)
+      if (upload.contentHash.toLowerCase() !== bytesToHex(contentHash)) {
+        throw new Error('Hash file từ storage không khớp với file đã chọn.')
+      }
+      if (new TextEncoder().encode(upload.contentUri).length > 200) throw new Error('Cloudinary URL vượt quá giới hạn 200 byte.')
+      const versionAddress = await deriveResumeVersionAddress(selectedResume.address, selectedResume.versionCount)
+      setPreparedVersion({
+        resume: selectedResume.address,
+        expectedVersion: selectedResume.versionCount,
+        contentHash,
+        metadataHash,
+        contentHashHex: upload.contentHash.toLowerCase(),
+        metadataHashHex: bytesToHex(metadataHash),
+        contentUri: upload.contentUri,
+        fileName: upload.fileName,
+        mediaType: upload.mediaType,
+        size: upload.size,
+        versionAddress,
+      })
+      setPublishState('prepared')
+    } catch (prepareError) {
+      setPublishState('error')
+      setPublishError(getPublishError(prepareError))
+    }
+  }
+
+  const handlePublishVersion = async () => {
+    if (!preparedVersion || !connectedWallet?.signer || !selectedResume) return
+    setPublishState('signing')
+    setPublishError(null)
+    try {
+      const owner = address(connectedWallet.account.address) as Address
+      const result = await publishResumeVersion(client, owner, preparedVersion, () => setPublishState('verifying'))
+      setPublishedVersion(result.version)
+      setOwnedResumes((items) => items.map((item) => item.address === result.resume.address ? result.resume : item))
+      setSelectedResume(result.resume)
+      setPublishState('success')
+    } catch (publishFailure) {
+      const message = getPublishError(publishFailure)
+      setPublishState(message.includes('stale') || message.includes('thay đổi') ? 'stale' : 'error')
+      setPublishError(message)
+    }
   }
 
   return (
@@ -300,6 +399,63 @@ export default function ProfilePage() {
                       </div>
                     )}
                   </section>
+
+                  {ownedResumes.length > 0 && (
+                    <section className="border-t border-border-low pt-6" aria-labelledby="publish-version-title">
+                      <h2 id="publish-version-title" className="text-xl font-semibold">Công bố phiên bản resume</h2>
+                      <p className="mt-2 text-sm leading-6 text-muted">CV được lưu bằng Cloudinary public URL. Bất kỳ ai có URL đều có thể tải file; cờ resume riêng tư không phải cơ chế kiểm soát truy cập.</p>
+                      <label className="mt-4 block text-sm font-medium">Resume</label>
+                      <select
+                        value={selectedResume?.address ?? ''}
+                        onChange={(event) => {
+                          setSelectedResume(ownedResumes.find((item) => item.address === event.target.value) ?? null)
+                          setPreparedVersion(null); setPublishState('idle'); setPublishedVersion(null)
+                        }}
+                        disabled={['hashing', 'uploading', 'signing', 'verifying'].includes(publishState)}
+                        className="mt-2 w-full rounded-lg border border-border-low bg-card px-3 py-2"
+                      >
+                        {ownedResumes.map((item) => <option key={item.address} value={item.address}>Resume #{item.resumeId.toString()} - version tiếp theo {item.versionCount.toString()}</option>)}
+                      </select>
+                      <div className="mt-4"><UploadZone name="resume-version" accept=".pdf,.docx" file={publishFile} onFileChange={handlePublishFileChange} hint="PDF hoặc DOCX, tối đa 10 MB" disabled={['hashing', 'uploading', 'signing', 'verifying'].includes(publishState)} /></div>
+                      <label className="mt-4 flex items-start gap-3 text-sm">
+                        <input type="checkbox" checked={publicAcknowledged} onChange={(event) => setPublicAcknowledged(event.target.checked)} disabled={['hashing', 'uploading', 'signing', 'verifying'].includes(publishState)} />
+                        Tôi hiểu file và URI Cloudinary sẽ công khai, kể cả khi resume có trạng thái riêng tư.
+                      </label>
+                      {!preparedVersion && (
+                        <button type="button" onClick={handlePrepareVersion} disabled={!publishFile || !selectedResume || !publicAcknowledged || ['hashing', 'uploading'].includes(publishState)} className="mt-4 rounded-lg bg-foreground px-4 py-2 font-medium text-background disabled:opacity-50">
+                          {publishState === 'hashing' ? 'Đang tính hash...' : publishState === 'uploading' ? 'Đang upload...' : 'Chuẩn bị phiên bản'}
+                        </button>
+                      )}
+                      {preparedVersion && (
+                        <div className="mt-4 rounded-xl border border-border-low p-4">
+                          <p className="font-semibold">Bản chuẩn bị version {preparedVersion.expectedVersion.toString()}</p>
+                          <p className="mt-2 break-all text-xs">PDA: {preparedVersion.versionAddress}</p>
+                          <p className="mt-1 break-all text-xs">URI: {preparedVersion.contentUri}</p>
+                          <p className="mt-1 break-all font-mono text-xs">Content: {preparedVersion.contentHashHex}</p>
+                          <p className="mt-1 break-all font-mono text-xs">Metadata: {preparedVersion.metadataHashHex}</p>
+                          <p className="mt-1 text-xs">{preparedVersion.fileName} · {preparedVersion.mediaType} · {preparedVersion.size} bytes</p>
+                          <button type="button" onClick={handlePublishVersion} disabled={publishState === 'signing' || publishState === 'verifying' || publishState === 'stale'} className="mt-4 rounded-lg bg-foreground px-4 py-2 font-medium text-background disabled:opacity-50">
+                            {publishState === 'signing' ? 'Đang chờ ký...' : publishState === 'verifying' ? 'Đang xác minh...' : 'Ký và công bố'}
+                          </button>
+                        </div>
+                      )}
+                      {publishedVersion && publishState === 'success' && (
+                        <div className="mt-4 rounded-xl border border-border-low p-4" role="status">
+                          <p className="font-semibold">Phiên bản đã xác minh on-chain</p>
+                          <p className="mt-2 break-all text-xs">Version PDA: {publishedVersion.address}</p>
+                          <p className="break-all text-xs">Owner: {publishedVersion.owner}</p>
+                          <p className="break-all text-xs">Resume: {publishedVersion.resume}</p>
+                          <p className="break-all text-xs">URI: {publishedVersion.contentUri}</p>
+                          <p className="break-all font-mono text-xs">Content: {bytesToHex(publishedVersion.contentHash)}</p>
+                          <p className="break-all font-mono text-xs">Metadata: {bytesToHex(publishedVersion.metadataHash)}</p>
+                          <p className="text-sm">Version {publishedVersion.version.toString()} · {publishedVersion.isRevoked ? 'Đã thu hồi' : 'Đang hoạt động'}</p>
+                          <p className="text-sm">Active/version count: {selectedResume?.activeVersion.toString()} / {selectedResume?.versionCount.toString()}</p>
+                          <p className="text-sm">Created: {publishedVersion.createdAt.toString()}</p>
+                        </div>
+                      )}
+                      {(publishState === 'error' || publishState === 'stale') && <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4" role="alert"><p>{publishError}</p><button type="button" onClick={() => setPublishState(preparedVersion ? 'prepared' : 'idle')} className="mt-3 rounded-lg border border-border-low px-3 py-2 text-sm">Thử lại</button></div>}
+                    </section>
+                  )}
                 </div>
               )}
               {state === 'error' && (

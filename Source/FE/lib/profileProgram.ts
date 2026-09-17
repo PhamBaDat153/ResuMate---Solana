@@ -147,6 +147,17 @@ export async function fetchResume(
   return decodeResumeAccount(resumeAddress, account)
 }
 
+export async function fetchOwnedResumes(
+  client: SolanaWalletClient,
+  owner: Address,
+  count: bigint,
+): Promise<ResumeAccount[]> {
+  const resumes = await Promise.all(
+    Array.from({ length: Number(count) }, (_, index) => fetchResume(client, owner, BigInt(index))),
+  )
+  return resumes.filter((resume): resume is ResumeAccount => resume !== null && resume.owner === owner)
+}
+
 export async function createProfileInstruction(owner: Address): Promise<Instruction> {
   const profile = await deriveProfileAddress(owner)
   return {

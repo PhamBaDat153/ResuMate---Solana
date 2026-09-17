@@ -8,6 +8,7 @@ import {
   createResume,
   deriveProfileAddress,
   deriveResumeAddress,
+  fetchOwnedResumes,
   fetchProfile,
 } from '@/lib/profileProgram'
 
@@ -32,6 +33,7 @@ vi.mock('@/lib/profileProgram', () => ({
   createResume: vi.fn(),
   deriveProfileAddress: vi.fn(),
   deriveResumeAddress: vi.fn(),
+  fetchOwnedResumes: vi.fn(),
   fetchProfile: vi.fn(),
 }))
 
@@ -39,6 +41,7 @@ const mockCreateProfile = vi.mocked(createProfile)
 const mockCreateResume = vi.mocked(createResume)
 const mockDeriveProfileAddress = vi.mocked(deriveProfileAddress)
 const mockDeriveResumeAddress = vi.mocked(deriveResumeAddress)
+const mockFetchOwnedResumes = vi.mocked(fetchOwnedResumes)
 const mockFetchProfile = vi.mocked(fetchProfile)
 
 describe('ProfilePage', () => {
@@ -48,9 +51,11 @@ describe('ProfilePage', () => {
     mockCreateResume.mockReset()
     mockDeriveProfileAddress.mockReset()
     mockDeriveResumeAddress.mockReset()
+    mockFetchOwnedResumes.mockReset()
     mockFetchProfile.mockReset()
     mockDeriveProfileAddress.mockResolvedValue(PROFILE)
     mockDeriveResumeAddress.mockResolvedValue(PROFILE)
+    mockFetchOwnedResumes.mockResolvedValue([])
   })
 
   afterEach(() => cleanup())

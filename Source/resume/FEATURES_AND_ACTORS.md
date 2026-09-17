@@ -40,7 +40,7 @@ Frontend, backend, storage va indexer khong co quyen dac biet neu khong co signe
 |---:|---|---|---|---|---|
 | 1 | Tao profile | `create_profile` | Resume Owner | Frontend, System Program | Tao `UserProfile` PDA cho wallet |
 | 2 | Tao resume [Hoan thanh] | `create_resume` | Resume Owner | Frontend, UserProfile | Tao `Resume` PDA moi |
-| 3 | Cong bo phien ban resume | `publish_resume_version` | Resume Owner | Backend, Storage, Frontend | Tao `ResumeVersion` voi hash va URI |
+| 3 | Cong bo phien ban resume [Hoan thanh] | `publish_resume_version` | Resume Owner | Backend, Storage, Frontend | Tao `ResumeVersion` voi hash va URI |
 | 4 | Bat/tat resume cong khai | `set_resume_visibility` | Resume Owner | Frontend, Recruiter | Cap nhat `is_public` |
 | 5 | Thu hoi phien ban resume | `revoke_resume_version` | Resume Owner | Frontend, Indexer | Dat `is_revoked = true` |
 | 6 | Khoi tao issuer registry | `initialize_issuer_registry` | Registry Authority | Frontend, System Program | Tao registry PDA va gan authority |
@@ -96,6 +96,8 @@ Resume moi co:
 `resume_id` phai bang `profile.resume_count` hien tai. Cach nay dam bao ID duoc cap tuan tu va tranh trung PDA.
 
 ### Cong bo version resume
+
+**Trang thai:** Da hoan thanh.
 
 **Instruction:** `publish_resume_version`
 
