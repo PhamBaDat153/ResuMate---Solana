@@ -119,7 +119,12 @@ pub fn handle_publish_resume_version(
 #[derive(Accounts)]
 pub struct SetResumeVisibility<'info> {
     pub owner: Signer<'info>,
-    #[account(mut, has_one = owner @ ErrorCode::Unauthorized)]
+    #[account(
+        mut,
+        has_one = owner @ ErrorCode::Unauthorized,
+        seeds = [RESUME_SEED, owner.key().as_ref(), &resume.resume_id.to_le_bytes()],
+        bump = resume.bump
+    )]
     pub resume: Account<'info, Resume>,
 }
 
@@ -129,7 +134,9 @@ pub fn handle_set_resume_visibility(
 ) -> Result<()> {
     ctx.accounts.resume.is_public = is_public;
     emit!(ResumeVisibilityChanged {
+        owner: ctx.accounts.owner.key(),
         resume: ctx.accounts.resume.key(),
+        resume_id: ctx.accounts.resume.resume_id,
         is_public,
     });
     Ok(())
@@ -138,21 +145,32 @@ pub fn handle_set_resume_visibility(
 #[derive(Accounts)]
 pub struct RevokeResumeVersion<'info> {
     pub owner: Signer<'info>,
-    #[account(has_one = owner @ ErrorCode::Unauthorized)]
+    #[account(
+        has_one = owner @ ErrorCode::Unauthorized,
+        seeds = [RESUME_SEED, owner.key().as_ref(), &resume.resume_id.to_le_bytes()],
+        bump = resume.bump
+    )]
     pub resume: Account<'info, Resume>,
     #[account(
         mut,
         has_one = owner @ ErrorCode::Unauthorized,
-        has_one = resume,
-        seeds = [RESUME_VERSION_SEED, resume.key().as_ref(), &version.version.to_le_bytes()],
+        has_one = resume @ ErrorCode::Unauthorized,
+        constraint = version.owner == resume.owner @ ErrorCode::Unauthorized,
+        seeds = [
+            RESUME_VERSION_SEED,
+            resume.key().as_ref(),
+            &version.version.to_le_bytes()
+        ],
         bump = version.bump
     )]
     pub version: Account<'info, ResumeVersion>,
 }
 
 pub fn handle_revoke_resume_version(ctx: Context<RevokeResumeVersion>) -> Result<()> {
+    // Soft-revoke only: keep the account for audit history and leave every other field intact.
     ctx.accounts.version.is_revoked = true;
     emit!(ResumeVersionRevoked {
+        owner: ctx.accounts.owner.key(),
         resume: ctx.accounts.resume.key(),
         version: ctx.accounts.version.key(),
         version_number: ctx.accounts.version.version,
@@ -178,12 +196,15 @@ pub struct ResumeVersionPublished {
 
 #[event]
 pub struct ResumeVisibilityChanged {
+    pub owner: Pubkey,
     pub resume: Pubkey,
+    pub resume_id: u64,
     pub is_public: bool,
 }
 
 #[event]
 pub struct ResumeVersionRevoked {
+    pub owner: Pubkey,
     pub resume: Pubkey,
     pub version: Pubkey,
     pub version_number: u64,

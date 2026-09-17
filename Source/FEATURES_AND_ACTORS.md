@@ -38,11 +38,11 @@ Frontend, backend, storage va indexer khong co quyen dac biet neu khong co signe
 
 | # | Tinh nang | Instruction | Actor chinh | Actor phoi hop | Ket qua |
 |---:|---|---|---|---|---|
-| 1 | Tao profile | `create_profile` | Resume Owner | Frontend, System Program | Tao `UserProfile` PDA cho wallet |
+| 1 | Tao profile [Hoan thanh] | `create_profile` | Resume Owner | Frontend, System Program | Tao `UserProfile` PDA cho wallet |
 | 2 | Tao resume [Hoan thanh] | `create_resume` | Resume Owner | Frontend, UserProfile | Tao `Resume` PDA moi |
 | 3 | Cong bo phien ban resume [Hoan thanh] | `publish_resume_version` | Resume Owner | Backend, Storage, Frontend | Tao `ResumeVersion` voi hash va URI |
-| 4 | Bat/tat resume cong khai | `set_resume_visibility` | Resume Owner | Frontend, Recruiter | Cap nhat `is_public` |
-| 5 | Thu hoi phien ban resume | `revoke_resume_version` | Resume Owner | Frontend, Indexer | Dat `is_revoked = true` |
+| 4 | Bat/tat resume cong khai [Hoan thanh] | `set_resume_visibility` | Resume Owner | Frontend, Recruiter | Cap nhat `is_public` |
+| 5 | Thu hoi phien ban resume [Hoan thanh] | `revoke_resume_version` | Resume Owner | Frontend, Indexer | Dat `is_revoked = true` |
 | 6 | Khoi tao issuer registry | `initialize_issuer_registry` | Registry Authority | Frontend, System Program | Tao registry PDA va gan authority |
 | 7 | Dang ky issuer | `register_issuer` | Registry Authority | Issuer, Frontend | Tao issuer PDA va dat active |
 | 8 | Bat/tat issuer | `set_issuer_active` | Registry Authority | Issuer, Frontend | Cap nhat `is_active` |
@@ -57,7 +57,9 @@ Frontend, backend, storage va indexer khong co quyen dac biet neu khong co signe
 
 ## 4.1 Resume Owner - xong
 
-### Tao profile
+### Tao profile - xong
+
+**Trang thai:** Da hoan thanh.
 
 **Instruction:** `create_profile`
 
@@ -121,7 +123,9 @@ Version PDA:
 
 Version cu khong bi ghi de. Moi lan publish tao mot account version moi, giup giu lich su resume.
 
-### Quan ly visibility
+### Quan ly visibility - xong
+
+**Trang thai:** Da hoan thanh.
 
 **Instruction:** `set_resume_visibility(is_public)`
 
@@ -129,7 +133,9 @@ Owner co the bat hoac tat `is_public`.
 
 Luu y: `is_public` la metadata cho frontend, khong phai co che bao mat tuyet doi. Du lieu tren Solana van co the duoc doc qua RPC. Tai lieu nhay cam can duoc ma hoa off-chain.
 
-### Thu hoi version
+### Thu hoi version - xong
+
+**Trang thai:** Da hoan thanh.
 
 **Instruction:** `revoke_resume_version`
 
