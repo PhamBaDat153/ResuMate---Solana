@@ -1,6 +1,7 @@
 import {
   AccountRole,
   address,
+  fetchEncodedAccounts,
   fetchEncodedAccount,
   getAddressEncoder,
   getAddressDecoder,
@@ -152,10 +153,20 @@ export async function fetchOwnedResumes(
   owner: Address,
   count: bigint,
 ): Promise<ResumeAccount[]> {
-  const resumes = await Promise.all(
-    Array.from({ length: Number(count) }, (_, index) => fetchResume(client, owner, BigInt(index))),
+  if (count === BigInt(0)) return []
+  const addresses = await Promise.all(
+    Array.from({ length: Number(count) }, (_, index) => deriveResumeAddress(owner, BigInt(index))),
   )
-  return resumes.filter((resume): resume is ResumeAccount => resume !== null && resume.owner === owner)
+  const accounts = await fetchEncodedAccounts(client.rpc, addresses, { commitment: 'confirmed' })
+  return accounts.flatMap((account, index) => {
+    if (!account.exists) return []
+    try {
+      const resume = decodeResumeAccount(addresses[index], account)
+      return resume.owner === owner ? [resume] : []
+    } catch {
+      return []
+    }
+  })
 }
 
 export async function createProfileInstruction(owner: Address): Promise<Instruction> {

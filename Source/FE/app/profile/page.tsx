@@ -32,6 +32,7 @@ import {
   type PreparedResumeVersion,
   type ResumeVersionAccount,
 } from '@/lib/resumeVersionProgram'
+import { fetchProfileCredentials, type CredentialAccount } from '@/lib/credentialProgram'
 
 type ProfileState = 'idle' | 'loading' | 'missing' | 'existing' | 'creating' | 'error'
 type ResumeState = 'idle' | 'loading' | 'ready' | 'creating' | 'refreshing' | 'success' | 'conflict' | 'error'
@@ -111,6 +112,9 @@ export default function ProfilePage() {
   const [publishedVersion, setPublishedVersion] = useState<ResumeVersionAccount | null>(null)
   const [publishState, setPublishState] = useState<PublishState>('idle')
   const [publishError, setPublishError] = useState<string | null>(null)
+  const [credentials, setCredentials] = useState<CredentialAccount[]>([])
+  const [assetState, setAssetState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [assetError, setAssetError] = useState<string | null>(null)
 
   const loadProfile = useCallback(async () => {
     if (!connectedWallet) {
@@ -122,6 +126,8 @@ export default function ProfilePage() {
       setResumeState('idle')
       setOwnedResumes([])
       setSelectedResume(null)
+      setCredentials([])
+      setAssetState('idle')
       return
     }
 
@@ -141,9 +147,21 @@ export default function ProfilePage() {
         const currentResumes = await fetchOwnedResumes(client, owner, currentProfile.resumeCount)
         setOwnedResumes(currentResumes)
         setSelectedResume((selected) => currentResumes.find((resume) => resume.address === selected?.address) ?? currentResumes[0] ?? null)
+        setAssetState('loading')
+        setAssetError(null)
+        try {
+          setCredentials(await fetchProfileCredentials(client, owner, currentProfile.credentialCount))
+          setAssetState('ready')
+        } catch (assetLoadError) {
+          setCredentials([])
+          setAssetState('error')
+          setAssetError(assetLoadError instanceof Error ? assetLoadError.message : 'Không thể đọc credential của profile.')
+        }
       } else {
         setNextResumeAddress(null)
         setResumeState('idle')
+        setCredentials([])
+        setAssetState('idle')
       }
     } catch (loadError) {
       setProfile(null)
@@ -458,6 +476,12 @@ export default function ProfilePage() {
                       {(publishState === 'error' || publishState === 'stale') && <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4" role="alert"><p>{publishError}</p><button type="button" onClick={() => setPublishState(preparedVersion ? 'prepared' : 'idle')} className="mt-3 rounded-lg border border-border-low px-3 py-2 text-sm">Thử lại</button></div>}
                     </section>
                   )}
+                  <section className="border-t border-border-low pt-6" aria-labelledby="credential-list-title">
+                    <h2 id="credential-list-title" className="text-xl font-semibold">Credential của profile</h2>
+                    {assetState === 'loading' && <p className="mt-3 text-sm text-muted" role="status">Đang tải credential...</p>}
+                    {assetState === 'error' && <div className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4" role="alert"><p>{assetError}</p><button type="button" onClick={() => void loadProfile()} className="mt-3 rounded-lg border border-border-low px-3 py-2 text-sm">Thử lại</button></div>}
+                    {assetState === 'ready' && (credentials.length === 0 ? <p className="mt-3 text-sm text-muted">Chưa có credential hợp lệ.</p> : <div className="mt-4 grid gap-3">{credentials.map((credential) => <div key={credential.address} className="rounded-xl border border-border-low p-4"><p className="font-medium">Credential #{credential.credentialId.toString()} · {credential.status}</p><p className="mt-1 break-all font-mono text-xs text-muted">Issuer: {credential.issuer}</p><p className="mt-2 text-sm">{credential.subjectAccepted ? 'Đã được subject chấp nhận' : 'Chưa được subject chấp nhận'} · {credential.expiresAt === null ? 'Không hết hạn' : `Hết hạn: ${credential.expiresAt.toString()}`}</p><p className="mt-1 break-all text-xs text-muted">URI: {credential.credentialUri}</p><p className="mt-1 break-all font-mono text-xs text-muted">Type: {bytesToHex(credential.credentialTypeHash)}</p><p className="mt-1 break-all font-mono text-xs text-muted">Claims: {bytesToHex(credential.claimsHash)}</p></div>)}</div>)}
+                  </section>
                 </div>
               )}
               {state === 'error' && (

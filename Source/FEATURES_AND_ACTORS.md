@@ -43,9 +43,9 @@ Frontend, backend, storage va indexer khong co quyen dac biet neu khong co signe
 | 3 | Cong bo phien ban resume [Hoan thanh] | `publish_resume_version` | Resume Owner | Backend, Storage, Frontend | Tao `ResumeVersion` voi hash va URI |
 | 4 | Bat/tat resume cong khai [Hoan thanh] | `set_resume_visibility` | Resume Owner | Frontend, Recruiter | Cap nhat `is_public` |
 | 5 | Thu hoi phien ban resume [Hoan thanh] | `revoke_resume_version` | Resume Owner | Frontend, Indexer | Dat `is_revoked = true` |
-| 6 | Khoi tao issuer registry | `initialize_issuer_registry` | Registry Authority | Frontend, System Program | Tao registry PDA va gan authority |
-| 7 | Dang ky issuer | `register_issuer` | Registry Authority | Issuer, Frontend | Tao issuer PDA va dat active |
-| 8 | Bat/tat issuer | `set_issuer_active` | Registry Authority | Issuer, Frontend | Cap nhat `is_active` |
+| 6 | Khoi tao issuer registry [Hoan thanh] | `initialize_issuer_registry` | Registry Authority | Frontend, System Program | Tao registry PDA va gan authority |
+| 7 | Dang ky issuer [Hoan thanh] | `register_issuer` | Registry Authority | Issuer, Frontend | Tao issuer PDA va dat active |
+| 8 | Bat/tat issuer [Hoan thanh] | `set_issuer_active` | Registry Authority | Issuer, Frontend | Cap nhat `is_active` |
 | 9 | Cap credential | `issue_credential` | Issuer | Subject, Storage, Frontend | Tao credential active cho subject |
 | 10 | Chap nhan credential | `accept_credential` | Subject | Frontend, Issuer | Cap nhat `subject_accepted` |
 | 11 | Bo chap nhan credential | `accept_credential(false)` | Subject | Frontend | Credential khong duoc subject chap nhan de hien thi |

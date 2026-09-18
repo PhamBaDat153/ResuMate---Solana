@@ -11,6 +11,7 @@ import {
   fetchOwnedResumes,
   fetchProfile,
 } from '@/lib/profileProgram'
+import { fetchProfileCredentials } from '@/lib/credentialProgram'
 
 const OWNER = address('8SVXDqsBg2qQGxddweHmkG8rehnAzRx6uesjrv8TcR63')
 const PROFILE = address('11111111111111111111111111111111')
@@ -36,6 +37,7 @@ vi.mock('@/lib/profileProgram', () => ({
   fetchOwnedResumes: vi.fn(),
   fetchProfile: vi.fn(),
 }))
+vi.mock('@/lib/credentialProgram', () => ({ fetchProfileCredentials: vi.fn() }))
 
 const mockCreateProfile = vi.mocked(createProfile)
 const mockCreateResume = vi.mocked(createResume)
@@ -43,6 +45,7 @@ const mockDeriveProfileAddress = vi.mocked(deriveProfileAddress)
 const mockDeriveResumeAddress = vi.mocked(deriveResumeAddress)
 const mockFetchOwnedResumes = vi.mocked(fetchOwnedResumes)
 const mockFetchProfile = vi.mocked(fetchProfile)
+const mockFetchProfileCredentials = vi.mocked(fetchProfileCredentials)
 
 describe('ProfilePage', () => {
   beforeEach(() => {
@@ -56,6 +59,8 @@ describe('ProfilePage', () => {
     mockDeriveProfileAddress.mockResolvedValue(PROFILE)
     mockDeriveResumeAddress.mockResolvedValue(PROFILE)
     mockFetchOwnedResumes.mockResolvedValue([])
+    mockFetchProfileCredentials.mockReset()
+    mockFetchProfileCredentials.mockResolvedValue([])
   })
 
   afterEach(() => cleanup())

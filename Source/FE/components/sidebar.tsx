@@ -8,6 +8,7 @@ const NAV_ITEMS = [
   { href: '/evaluate', label: 'Đánh giá CV' },
   { href: '/jobs', label: 'Tìm việc bằng AI' },
   { href: '/profile', label: 'Profile on-chain' },
+  { href: '/issuer-registry', label: 'Issuer Registry' },
 ] as const
 
 export function Sidebar() {
