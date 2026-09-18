@@ -14,13 +14,16 @@ public class CloudinarySdkUploadClient implements CloudinaryUploadClient {
     }
 
     @Override
-    public CloudinaryAsset upload(byte[] bytes, String folder) {
+    public CloudinaryAsset upload(byte[] bytes, String folder, String fileName) {
         try {
+            String safeFileName = fileName.replaceAll("[^A-Za-z0-9._-]", "_");
+            String publicId = folder + "/" + safeFileName;
             Map<?, ?> result = cloudinary.uploader().upload(bytes, ObjectUtils.asMap(
-                    "resource_type", "raw",
+                    "resource_type", "auto",
                     "type", "upload",
-                    "folder", folder,
-                    "unique_filename", true,
+                    "public_id", publicId,
+                    "use_filename", false,
+                    "unique_filename", false,
                     "overwrite", false));
             return new CloudinaryAsset(
                     String.valueOf(result.get("secure_url")),

@@ -28,7 +28,8 @@ public class ResumeStorageService {
 
     public ResumeUploadResponse upload(MultipartFile file) {
         ResumeDocumentValidator.ValidatedResumeDocument document = validator.validate(file);
-        CloudinaryUploadClient.CloudinaryAsset asset = uploadClient.upload(document.bytes(), folder);
+        CloudinaryUploadClient.CloudinaryAsset asset = uploadClient.upload(
+                document.bytes(), folder, document.fileName());
         validateUri(asset.secureUrl());
         return new ResumeUploadResponse(
                 asset.secureUrl(),

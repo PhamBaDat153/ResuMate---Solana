@@ -16,7 +16,7 @@ public class CloudinaryConfiguration {
             @Value("${cloudinary.api-key:}") String apiKey,
             @Value("${cloudinary.api-secret:}") String apiSecret) {
         if (cloudName.isBlank() || apiKey.isBlank() || apiSecret.isBlank()) {
-            return (bytes, folder) -> {
+            return (bytes, folder, fileName) -> {
                 throw new IllegalStateException("Cloudinary storage is not configured.");
             };
         }

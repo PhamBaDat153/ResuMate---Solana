@@ -21,6 +21,7 @@ import {
   type UserProfile,
 } from '@/lib/profileProgram'
 import { UploadZone } from '@/components/upload-zone'
+import { ResumePreview, type VerifiedResumeVersion } from '@/components/resume-preview'
 import { uploadResumeDocument } from '@/lib/resumeUploadApi'
 import {
   bytesToHex,
@@ -451,6 +452,7 @@ export default function ProfilePage() {
                           <p className="text-sm">Version {publishedVersion.version.toString()} · {publishedVersion.isRevoked ? 'Đã thu hồi' : 'Đang hoạt động'}</p>
                           <p className="text-sm">Active/version count: {selectedResume?.activeVersion.toString()} / {selectedResume?.versionCount.toString()}</p>
                           <p className="text-sm">Created: {publishedVersion.createdAt.toString()}</p>
+                          <ResumePreview version={{ ...publishedVersion, fileName: preparedVersion?.fileName ?? 'resume', mediaType: preparedVersion?.mediaType ?? 'application/octet-stream', size: preparedVersion?.size ?? 0, verified: true } satisfies VerifiedResumeVersion} />
                         </div>
                       )}
                       {(publishState === 'error' || publishState === 'stale') && <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4" role="alert"><p>{publishError}</p><button type="button" onClick={() => setPublishState(preparedVersion ? 'prepared' : 'idle')} className="mt-3 rounded-lg border border-border-low px-3 py-2 text-sm">Thử lại</button></div>}
