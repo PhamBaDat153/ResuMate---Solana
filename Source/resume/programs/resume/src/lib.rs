@@ -77,4 +77,33 @@ pub mod resume {
     pub fn revoke_credential(ctx: Context<RevokeCredential>) -> Result<()> {
         handle_revoke_credential(ctx)
     }
+
+    pub fn create_access_grant(
+        ctx: Context<CreateAccessGrant>,
+        grant_id: u64,
+        recipient_key_version: u32,
+        wrapped_document_key: Vec<u8>,
+        expires_at: Option<i64>,
+    ) -> Result<()> {
+        handle_create_access_grant(ctx, grant_id, recipient_key_version, wrapped_document_key, expires_at)
+    }
+
+    pub fn revoke_access_grant(ctx: Context<RevokeAccessGrant>, _grant_id: u64) -> Result<()> {
+        handle_revoke_access_grant(ctx)
+    }
+
+    pub fn create_link_grant(
+        ctx: Context<CreateLinkGrant>,
+        link_grant_id: u64,
+        secret_hash: [u8; 32],
+        wrapped_document_key: Vec<u8>,
+        expires_at: i64,
+        max_uses: u32,
+    ) -> Result<()> {
+        handle_create_link_grant(ctx, link_grant_id, secret_hash, wrapped_document_key, expires_at, max_uses)
+    }
+
+    pub fn revoke_link_grant(ctx: Context<RevokeLinkGrant>, _link_grant_id: u64) -> Result<()> {
+        handle_revoke_link_grant(ctx)
+    }
 }

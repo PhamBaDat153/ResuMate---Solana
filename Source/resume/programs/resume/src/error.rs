@@ -20,4 +20,14 @@ pub enum ErrorCode {
     InvalidExpiry,
     #[msg("The account counter overflowed")]
     CounterOverflow,
+    #[msg("The grant is already revoked")]
+    GrantAlreadyRevoked,
+    #[msg("The wrapped key exceeds the maximum allowed length")]
+    WrappedKeyTooLong,
+    #[msg("The link grant has exceeded its maximum uses")]
+    LinkGrantExhausted,
+    #[msg("The link grant has expired")]
+    LinkGrantExpired,
+    #[msg("The provided secret does not match the grant")]
+    InvalidLinkSecret,
 }

@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useState } from 'react'
 import { address, type Address } from '@solana/kit'
@@ -32,7 +32,7 @@ import {
   type PreparedResumeVersion,
   type ResumeVersionAccount,
 } from '@/lib/resumeVersionProgram'
-import { fetchProfileCredentials, type CredentialAccount } from '@/lib/credentialProgram'
+import { fetchProfileCredentials, acceptCredential, type CredentialAccount } from '@/lib/credentialProgram'
 
 type ProfileState = 'idle' | 'loading' | 'missing' | 'existing' | 'creating' | 'error'
 type ResumeState = 'idle' | 'loading' | 'ready' | 'creating' | 'refreshing' | 'success' | 'conflict' | 'error'
@@ -480,7 +480,7 @@ export default function ProfilePage() {
                     <h2 id="credential-list-title" className="text-xl font-semibold">Credential của profile</h2>
                     {assetState === 'loading' && <p className="mt-3 text-sm text-muted" role="status">Đang tải credential...</p>}
                     {assetState === 'error' && <div className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4" role="alert"><p>{assetError}</p><button type="button" onClick={() => void loadProfile()} className="mt-3 rounded-lg border border-border-low px-3 py-2 text-sm">Thử lại</button></div>}
-                    {assetState === 'ready' && (credentials.length === 0 ? <p className="mt-3 text-sm text-muted">Chưa có credential hợp lệ.</p> : <div className="mt-4 grid gap-3">{credentials.map((credential) => <div key={credential.address} className="rounded-xl border border-border-low p-4"><p className="font-medium">Credential #{credential.credentialId.toString()} · {credential.status}</p><p className="mt-1 break-all font-mono text-xs text-muted">Issuer: {credential.issuer}</p><p className="mt-2 text-sm">{credential.subjectAccepted ? 'Đã được subject chấp nhận' : 'Chưa được subject chấp nhận'} · {credential.expiresAt === null ? 'Không hết hạn' : `Hết hạn: ${credential.expiresAt.toString()}`}</p><p className="mt-1 break-all text-xs text-muted">URI: {credential.credentialUri}</p><p className="mt-1 break-all font-mono text-xs text-muted">Type: {bytesToHex(credential.credentialTypeHash)}</p><p className="mt-1 break-all font-mono text-xs text-muted">Claims: {bytesToHex(credential.claimsHash)}</p></div>)}</div>)}
+                    {assetState === 'ready' && (credentials.length === 0 ? <p className="mt-3 text-sm text-muted">Chưa có credential hợp lệ.</p> : <div className="mt-4 grid gap-3">{credentials.map((credential) => <div key={credential.address} className="rounded-xl border border-border-low p-4"><p className="font-medium">Credential #{credential.credentialId.toString()} · {credential.status}</p><p className="mt-1 break-all font-mono text-xs text-muted">Issuer: {credential.issuer}</p><p className="mt-2 text-sm">{credential.subjectAccepted ? 'Đã được subject chấp nhận' : 'Chưa được subject chấp nhận'} · {credential.expiresAt === null ? 'Không hết hạn' : `Hết hạn: ${credential.expiresAt.toString()}`}</p><p className="mt-1 break-all text-xs text-muted">URI: {credential.credentialUri}</p><p className="mt-1 break-all font-mono text-xs text-muted">Type: {bytesToHex(credential.credentialTypeHash)}</p><p className="mt-1 break-all font-mono text-xs text-muted">Claims: {bytesToHex(credential.claimsHash)}</p>{credential.status === "Active" && !credential.subjectAccepted && connectedWallet?.signer && <button type="button" onClick={async () => { if (!connectedWallet) return; try { await acceptCredential(client, address(connectedWallet.account.address) as Address, credential.address, true); await loadProfile() } catch {} }} className="mt-2 rounded-lg bg-foreground px-3 py-1 text-xs font-medium text-background">Chấp nhận</button>}</div>)}</div>)}
                   </section>
                 </div>
               )}

@@ -18,6 +18,7 @@ resumate\source_code\Service\RemotiveJobProvider.class
 resumate\source_code\Model\JobSearchCriteria.class
 resumate\source_code\Service\RemoteOkJobProvider.class
 resumate\source_code\Service\Function\CVEvaluateService.class
+resumate\source_code\Service\CredentialPackageStorageService.class
 resumate\source_code\Service\ResumeDocumentValidator$ValidatedResumeDocument.class
 resumate\source_code\SourceCodeApplication.class
 resumate\source_code\Controller\EvaluateController.class
@@ -26,6 +27,7 @@ resumate\source_code\Model\JobListing.class
 resumate\source_code\Service\HimalayasJobProvider.class
 resumate\source_code\DTO\JobMatchResponse$JobMatch$JobMatchBuilder.class
 resumate\source_code\DTO\ResumeUploadResponse.class
+resumate\source_code\Controller\CredentialPackageController.class
 resumate\source_code\DTO\JobMatchResponse$JobMatch.class
 resumate\source_code\Service\ResumeDocumentValidator.class
 resumate\source_code\Service\ResumeMetadataHasher.class
@@ -35,6 +37,9 @@ resumate\source_code\DTO\EvaluateRequest.class
 resumate\source_code\Ultility\LLMEvaluator.class
 resumate\source_code\Service\JobAggregator.class
 resumate\source_code\Service\ResumeStorageService.class
+resumate\source_code\DTO\CredentialPackageUploadResponse.class
+resumate\source_code\DTO\CredentialPackageUploadRequest.class
+resumate\source_code\Controller\CredentialAccessController.class
 resumate\source_code\Service\Function\JobMatchingServiceImplement.class
 resumate\source_code\Service\CloudinaryUploadClient.class
 resumate\source_code\Service\JobicyJobProvider.class

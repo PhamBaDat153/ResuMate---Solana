@@ -9,6 +9,10 @@ const NAV_ITEMS = [
   { href: '/jobs', label: 'Tìm việc bằng AI' },
   { href: '/profile', label: 'Profile on-chain' },
   { href: '/issuer-registry', label: 'Issuer Registry' },
+  { href: '/issuer', label: 'Issuer Console' },
+  { href: '/encryption-setup', label: 'Encryption Setup' },
+  { href: '/subject-grants', label: 'Credential Access' },
+  { href: '/verify', label: 'Verify Credential' },
 ] as const
 
 export function Sidebar() {

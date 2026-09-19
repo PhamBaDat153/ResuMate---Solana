@@ -78,3 +78,40 @@ pub struct Credential {
     pub subject_accepted: bool,
     pub bump: u8,
 }
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, PartialEq, Eq, InitSpace)]
+pub enum GrantStatus {
+    Active,
+    Revoked,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct AccessGrant {
+    pub credential: Pubkey,
+    pub grantor: Pubkey,
+    pub recipient: Pubkey,
+    pub recipient_key_version: u32,
+    #[max_len(512)]
+    pub wrapped_document_key: Vec<u8>,
+    pub created_at: i64,
+    pub expires_at: Option<i64>,
+    pub status: GrantStatus,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct LinkGrant {
+    pub credential: Pubkey,
+    pub grantor: Pubkey,
+    pub secret_hash: [u8; 32],
+    #[max_len(512)]
+    pub wrapped_document_key: Vec<u8>,
+    pub created_at: i64,
+    pub expires_at: i64,
+    pub use_count: u32,
+    pub max_uses: u32,
+    pub status: GrantStatus,
+    pub bump: u8,
+}
