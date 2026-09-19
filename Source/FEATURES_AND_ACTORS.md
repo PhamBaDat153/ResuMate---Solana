@@ -46,10 +46,10 @@ Frontend, backend, storage va indexer khong co quyen dac biet neu khong co signe
 | 6 | Khoi tao issuer registry [Hoan thanh] | `initialize_issuer_registry` | Registry Authority | Frontend, System Program | Tao registry PDA va gan authority |
 | 7 | Dang ky issuer [Hoan thanh] | `register_issuer` | Registry Authority | Issuer, Frontend | Tao issuer PDA va dat active |
 | 8 | Bat/tat issuer [Hoan thanh] | `set_issuer_active` | Registry Authority | Issuer, Frontend | Cap nhat `is_active` |
-| 9 | Cap credential | `issue_credential` | Issuer | Subject, Storage, Frontend | Tao credential active cho subject |
+| 9 | Cap credential [Hoan thanh] | `issue_credential` | Issuer | Subject, Storage, Frontend | Tao credential active cho subject |
 | 10 | Chap nhan credential | `accept_credential` | Subject | Frontend, Issuer | Cap nhat `subject_accepted` |
 | 11 | Bo chap nhan credential | `accept_credential(false)` | Subject | Frontend | Credential khong duoc subject chap nhan de hien thi |
-| 12 | Thu hoi credential | `revoke_credential` | Issuer | Subject, Frontend | Chuyen credential tu `Active` sang `Revoked` |
+| 12 | Thu hoi credential [Hoan thanh] | `revoke_credential` | Issuer | Subject, Frontend | Chuyen credential tu `Active` sang `Revoked` |
 | 13 | Xac minh resume | Doc account va tinh hash | Recruiter / Verifier | RPC, Storage, Indexer | Kiem tra file trung voi hash on-chain |
 | 14 | Xac minh credential | Doc account va kiem tra status | Recruiter / Verifier | RPC, Storage, Indexer | Kiem tra issuer, claims hash, expiry va revoke status |
 
@@ -187,9 +187,11 @@ Registry Authority co the tam dung issuer khi:
 
 Issuer bi inactive khong the issue credential moi. Code hien tai van cho phep issuer dung de revoke credential cua minh.
 
-## 4.3 Issuer
+## 4.3 Issuer - xong
 
-### Cap credential
+### Cap credential - xong
+
+**Trang thai:** Da hoan thanh.
 
 **Instruction:** `issue_credential`
 
@@ -218,7 +220,9 @@ Credential luu:
 
 Issuer phai thanh toan rent cho credential account.
 
-### Thu hoi credential
+### Thu hoi credential - xong
+
+**Trang thai:** Da hoan thanh.
 
 **Instruction:** `revoke_credential`
 

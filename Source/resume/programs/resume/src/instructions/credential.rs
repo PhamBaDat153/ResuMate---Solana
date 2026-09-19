@@ -14,7 +14,8 @@ pub struct IssueCredential<'info> {
     #[account(
         seeds = [ISSUER_SEED, issuer_authority.key().as_ref()],
         bump = issuer.bump,
-        constraint = issuer.issuer == issuer_authority.key() @ ErrorCode::Unauthorized
+        constraint = issuer.issuer == issuer_authority.key() @ ErrorCode::Unauthorized,
+        constraint = issuer.is_active @ ErrorCode::IssuerInactive
     )]
     pub issuer: Account<'info, Issuer>,
     /// CHECK: The subject is identified by this public key and does not authorize issuance.
@@ -45,7 +46,6 @@ pub fn handle_issue_credential(
     credential_uri: String,
     expires_at: Option<i64>,
 ) -> Result<()> {
-    require!(ctx.accounts.issuer.is_active, ErrorCode::IssuerInactive);
     require!(
         credential_id == ctx.accounts.subject_profile.credential_count,
         ErrorCode::InvalidId
@@ -126,8 +126,13 @@ pub struct RevokeCredential<'info> {
     pub issuer: Account<'info, Issuer>,
     #[account(
         mut,
+        constraint = credential.issuer == issuer.issuer @ ErrorCode::Unauthorized,
         constraint = credential.issuer == issuer_authority.key() @ ErrorCode::Unauthorized,
-        seeds = [CREDENTIAL_SEED, credential.subject.as_ref(), &credential.credential_id.to_le_bytes()],
+        seeds = [
+            CREDENTIAL_SEED,
+            credential.subject.as_ref(),
+            &credential.credential_id.to_le_bytes()
+        ],
         bump = credential.bump
     )]
     pub credential: Account<'info, Credential>,
@@ -138,6 +143,8 @@ pub fn handle_revoke_credential(ctx: Context<RevokeCredential>) -> Result<()> {
         ctx.accounts.credential.status == CredentialStatus::Active,
         ErrorCode::CredentialRevoked
     );
+    // Soft-revoke only: keep the account for audit and leave every other field intact.
+    // Inactive issuers may still revoke credentials they previously issued.
     ctx.accounts.credential.status = CredentialStatus::Revoked;
     emit!(CredentialRevoked {
         credential: ctx.accounts.credential.key(),
