@@ -53,13 +53,13 @@ export default function EncryptionSetupPage() {
   }
 
   return (
-    <main className="min-h-screen bg-background pl-60">
-      <div className="mx-auto max-w-3xl px-8 py-12">
+    <main className="min-h-screen bg-background">
+      <div className="mx-auto max-w-3xl">
         <header className="mb-8">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted">Security</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight">Encryption Identity</h1>
+          <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted">Bảo mật tài liệu</p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight">Bảo mật tài liệu</h1>
           <p className="mt-3 max-w-2xl leading-7 text-muted">
-            Set up an encryption key pair for securely receiving credential documents. This key is separate from your Solana wallet signing key.
+            Thiết lập khóa bảo mật để nhận tài liệu chứng nhận an toàn. Khóa này tách biệt với khóa ký giao dịch của ví Solana.
           </p>
         </header>
 
@@ -67,52 +67,52 @@ export default function EncryptionSetupPage() {
           {hasIdentity ? (
             <div className="flex flex-col gap-4">
               <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-4">
-                <p className="font-medium">Encryption identity configured</p>
-                <p className="mt-1 text-sm text-muted">Your browser has a stored encryption key pair.</p>
+                <p className="font-medium">Bảo mật tài liệu đã được thiết lập</p>
+                <p className="mt-1 text-sm text-muted">Trình duyệt của bạn đang lưu một cặp khóa bảo mật.</p>
               </div>
               {!publicKeyHex && (
                 <button type="button" onClick={loadExistingKey} className="w-fit rounded-lg border border-border-low px-4 py-2 text-sm">
-                  Show public key
+                   Hiện khóa công khai
                 </button>
               )}
               {publicKeyHex && (
                 <div className="rounded-xl border border-border-low p-4">
-                  <p className="text-sm font-medium">Public key (SPKI hex)</p>
+                   <p className="text-sm font-medium">Khóa công khai</p>
                   <p className="mt-2 break-all font-mono text-xs text-muted">{publicKeyHex}</p>
-                  <p className="mt-2 text-xs text-muted">Share this with issuers so they can encrypt credential documents for you.</p>
+                   <p className="mt-2 text-xs text-muted">Chia sẻ khóa này với đơn vị cấp để họ mã hóa tài liệu chứng nhận cho bạn.</p>
                 </div>
               )}
               <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
-                <p className="text-sm font-medium">Backup your passphrase</p>
-                <p className="mt-1 text-sm text-muted">If you lose your passphrase or clear browser data, you will not be able to decrypt credentials issued to you. Store your passphrase securely.</p>
+                 <p className="text-sm font-medium">Hãy sao lưu mật khẩu bảo mật</p>
+                 <p className="mt-1 text-sm text-muted">Nếu mất mật khẩu hoặc xóa dữ liệu trình duyệt, bạn sẽ không thể giải mã tài liệu đã nhận. Hãy lưu mật khẩu ở nơi an toàn.</p>
               </div>
               <button type="button" onClick={handleClear} className="w-fit rounded-lg border border-red-500/30 px-4 py-2 text-sm text-red-600">
-                Remove encryption identity
+                 Xóa thiết lập bảo mật
               </button>
             </div>
           ) : (
             <div className="flex flex-col gap-4">
-              <p className="text-sm text-muted">No encryption identity found. Create one to receive encrypted credentials.</p>
+               <p className="text-sm text-muted">Chưa có thiết lập bảo mật. Tạo thiết lập để nhận tài liệu chứng nhận được mã hóa.</p>
               <label className="block text-sm font-medium">
-                Passphrase (minimum 8 characters)
+                 Mật khẩu bảo mật (tối thiểu 8 ký tự)
                 <input
                   type="password"
                   value={passphrase}
                   onChange={(e) => setPassphrase(e.target.value)}
                   disabled={state === 'creating'}
                   className="mt-2 w-full rounded-lg border border-border-low bg-card px-3 py-2 text-sm"
-                  placeholder="Enter passphrase"
+                   placeholder="Nhập mật khẩu bảo mật"
                 />
               </label>
               <label className="block text-sm font-medium">
-                Confirm passphrase
+                 Xác nhận mật khẩu bảo mật
                 <input
                   type="password"
                   value={confirmPassphrase}
                   onChange={(e) => setConfirmPassphrase(e.target.value)}
                   disabled={state === 'creating'}
                   className="mt-2 w-full rounded-lg border border-border-low bg-card px-3 py-2 text-sm"
-                  placeholder="Confirm passphrase"
+                   placeholder="Nhập lại mật khẩu bảo mật"
                 />
               </label>
               {error && (
@@ -122,7 +122,7 @@ export default function EncryptionSetupPage() {
               )}
               {state === 'success' && publicKeyHex && (
                 <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-4">
-                  <p className="font-medium">Identity created successfully</p>
+                   <p className="font-medium">Đã tạo thiết lập bảo mật</p>
                   <p className="mt-2 break-all font-mono text-xs text-muted">{publicKeyHex}</p>
                 </div>
               )}
@@ -132,7 +132,7 @@ export default function EncryptionSetupPage() {
                 disabled={state === 'creating' || !passphrase || !confirmPassphrase}
                 className="w-fit rounded-lg bg-foreground px-4 py-2 font-medium text-background disabled:opacity-50"
               >
-                {state === 'creating' ? 'Creating...' : 'Create encryption identity'}
+                 {state === 'creating' ? 'Đang tạo...' : 'Tạo thiết lập bảo mật'}
               </button>
             </div>
           )}

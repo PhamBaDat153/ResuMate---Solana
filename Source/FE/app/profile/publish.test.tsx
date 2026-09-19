@@ -60,7 +60,7 @@ describe('resume version publishing UI', () => {
     vi.mocked(publishResumeVersion).mockRejectedValue(new Error('User rejected'))
     const user = userEvent.setup()
     render(<ProfilePage />)
-    await screen.findByText('Công bố phiên bản resume')
+    await screen.findByText('Cập nhật phiên bản CV')
     const input = document.querySelector('input[type="file"]') as HTMLInputElement
     await user.upload(input, file)
     await user.click(screen.getByRole('checkbox'))

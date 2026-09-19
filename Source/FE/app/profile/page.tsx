@@ -294,10 +294,10 @@ export default function ProfilePage() {
     <main className="min-h-screen bg-bg1 px-6 py-16 text-foreground">
       <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
         <header>
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted">ResuMate · On-chain identity</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight">Profile của bạn</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted">ResuMate · Hồ sơ cá nhân</p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight">Hồ sơ của tôi</h1>
           <p className="mt-3 max-w-2xl leading-7 text-muted">
-            Tạo profile on-chain để bắt đầu quản lý resume và credential. Profile chỉ lưu identity wallet và các bộ đếm, không lưu thông tin cá nhân.
+            Tạo hồ sơ để bắt đầu quản lý CV và chứng nhận. Hồ sơ chỉ lưu định danh ví và các bộ đếm, không lưu thông tin cá nhân.
           </p>
         </header>
 
@@ -327,7 +327,7 @@ export default function ProfilePage() {
             <div className="flex flex-col gap-6">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm text-muted">Wallet owner</p>
+                  <p className="text-sm text-muted">Chủ hồ sơ</p>
                   <p className="mt-1 break-all font-mono text-sm">{connectedWallet.account.address}</p>
                 </div>
                 <button
@@ -340,17 +340,17 @@ export default function ProfilePage() {
                 </button>
               </div>
 
-              {state === 'loading' && <p className="text-muted" role="status">Đang kiểm tra profile trên Solana...</p>}
+              {state === 'loading' && <p className="text-muted" role="status">Đang kiểm tra hồ sơ trên Solana...</p>}
               {state === 'missing' && (
                 <div className="flex flex-col gap-4">
-                  <p>Wallet này chưa có profile on-chain.</p>
+                   <p>Ví này chưa có hồ sơ.</p>
                   <button
                     type="button"
                     onClick={handleCreate}
                     disabled={!connectedWallet.signer}
                     className="w-fit rounded-lg bg-foreground px-4 py-2 font-medium text-background transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
                   >
-                    Tạo profile
+                     Tạo hồ sơ
                   </button>
                   {profileAddress && <p className="break-all text-xs text-muted">Profile PDA: {profileAddress}</p>}
                 </div>
@@ -366,7 +366,7 @@ export default function ProfilePage() {
                   </dl>
 
                   <section className="border-t border-border-low pt-6" aria-labelledby="create-resume-title">
-                    <h2 id="create-resume-title" className="text-xl font-semibold">Tạo resume on-chain</h2>
+                     <h2 id="create-resume-title" className="text-xl font-semibold">Tạo CV</h2>
                     <p className="mt-2 text-sm leading-6 text-muted">
                       Bước này chỉ tạo container resume riêng tư trên Solana. Nội dung CV, hash và URI chỉ được thêm ở bước công bố phiên bản riêng biệt.
                     </p>
@@ -421,9 +421,9 @@ export default function ProfilePage() {
 
                   {ownedResumes.length > 0 && (
                     <section className="border-t border-border-low pt-6" aria-labelledby="publish-version-title">
-                      <h2 id="publish-version-title" className="text-xl font-semibold">Công bố phiên bản resume</h2>
+                     <h2 id="publish-version-title" className="text-xl font-semibold">Cập nhật phiên bản CV</h2>
                       <p className="mt-2 text-sm leading-6 text-muted">CV được lưu bằng Cloudinary public URL. Bất kỳ ai có URL đều có thể tải file; cờ resume riêng tư không phải cơ chế kiểm soát truy cập.</p>
-                      <label className="mt-4 block text-sm font-medium">Resume</label>
+                       <label className="mt-4 block text-sm font-medium">CV</label>
                       <select
                         value={selectedResume?.address ?? ''}
                         onChange={(event) => {
@@ -477,10 +477,10 @@ export default function ProfilePage() {
                     </section>
                   )}
                   <section className="border-t border-border-low pt-6" aria-labelledby="credential-list-title">
-                    <h2 id="credential-list-title" className="text-xl font-semibold">Credential của profile</h2>
-                    {assetState === 'loading' && <p className="mt-3 text-sm text-muted" role="status">Đang tải credential...</p>}
+                     <h2 id="credential-list-title" className="text-xl font-semibold">Chứng nhận của tôi</h2>
+                     {assetState === 'loading' && <p className="mt-3 text-sm text-muted" role="status">Đang tải chứng nhận...</p>}
                     {assetState === 'error' && <div className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4" role="alert"><p>{assetError}</p><button type="button" onClick={() => void loadProfile()} className="mt-3 rounded-lg border border-border-low px-3 py-2 text-sm">Thử lại</button></div>}
-                    {assetState === 'ready' && (credentials.length === 0 ? <p className="mt-3 text-sm text-muted">Chưa có credential hợp lệ.</p> : <div className="mt-4 grid gap-3">{credentials.map((credential) => <div key={credential.address} className="rounded-xl border border-border-low p-4"><p className="font-medium">Credential #{credential.credentialId.toString()} · {credential.status}</p><p className="mt-1 break-all font-mono text-xs text-muted">Issuer: {credential.issuer}</p><p className="mt-2 text-sm">{credential.subjectAccepted ? 'Đã được subject chấp nhận' : 'Chưa được subject chấp nhận'} · {credential.expiresAt === null ? 'Không hết hạn' : `Hết hạn: ${credential.expiresAt.toString()}`}</p><p className="mt-1 break-all text-xs text-muted">URI: {credential.credentialUri}</p><p className="mt-1 break-all font-mono text-xs text-muted">Type: {bytesToHex(credential.credentialTypeHash)}</p><p className="mt-1 break-all font-mono text-xs text-muted">Claims: {bytesToHex(credential.claimsHash)}</p>{credential.status === "Active" && !credential.subjectAccepted && connectedWallet?.signer && <button type="button" onClick={async () => { if (!connectedWallet) return; try { await acceptCredential(client, address(connectedWallet.account.address) as Address, credential.address, true); await loadProfile() } catch {} }} className="mt-2 rounded-lg bg-foreground px-3 py-1 text-xs font-medium text-background">Chấp nhận</button>}</div>)}</div>)}
+                     {assetState === 'ready' && (credentials.length === 0 ? <p className="mt-3 text-sm text-muted">Chưa có chứng nhận hợp lệ.</p> : <div className="mt-4 grid gap-3">{credentials.map((credential) => <div key={credential.address} className="rounded-xl border border-border-low p-4"><p className="font-medium">Chứng nhận #{credential.credentialId.toString()} · {credential.status === 'Active' ? 'Đang hoạt động' : 'Đã thu hồi'}</p><p className="mt-1 break-all font-mono text-xs text-muted">Đơn vị cấp: {credential.issuer}</p><p className="mt-2 text-sm">{credential.subjectAccepted ? 'Đã được người nhận xác nhận' : 'Chưa được người nhận xác nhận'} · {credential.expiresAt === null ? 'Không hết hạn' : `Hết hạn: ${credential.expiresAt.toString()}`}</p><p className="mt-1 break-all text-xs text-muted">URI: {credential.credentialUri}</p><p className="mt-1 break-all font-mono text-xs text-muted">Loại: {bytesToHex(credential.credentialTypeHash)}</p><p className="mt-1 break-all font-mono text-xs text-muted">Claims: {bytesToHex(credential.claimsHash)}</p>{credential.status === "Active" && !credential.subjectAccepted && connectedWallet?.signer && <button type="button" onClick={async () => { if (!connectedWallet) return; try { await acceptCredential(client, address(connectedWallet.account.address) as Address, credential.address, true); await loadProfile() } catch {} }} className="mt-2 rounded-lg bg-foreground px-3 py-1 text-xs font-medium text-background">Xác nhận</button>}</div>)}</div>)}
                   </section>
                 </div>
               )}

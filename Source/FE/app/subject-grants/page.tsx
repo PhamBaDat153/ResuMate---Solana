@@ -149,20 +149,20 @@ export default function SubjectGrantsPage() {
   const activeCred = credentials.find(c => c.address === selectedCredential)
 
   return (
-    <main className="min-h-screen bg-background pl-60">
-      <div className="mx-auto max-w-5xl px-8 py-12">
+    <main className="min-h-screen bg-background">
+      <div className="mx-auto max-w-5xl">
         <header className="mb-8">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted">Subject</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight">Credential Access Grants</h1>
-          <p className="mt-3 max-w-2xl leading-7 text-muted">Manage who can decrypt your credential documents. Grant or revoke access for wallet verifiers and create expiring share links.</p>
+          <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted">Chứng nhận của tôi</p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight">Quyền truy cập tài liệu</h1>
+          <p className="mt-3 max-w-2xl leading-7 text-muted">Quản lý ai có thể xem tài liệu chứng nhận của bạn. Bạn có thể cấp, thu hồi hoặc tạo liên kết chia sẻ có thời hạn.</p>
         </header>
 
         {!connectedWallet ? (
           <section className="rounded-2xl border border-border-low bg-card p-6">
-            <p className="text-muted">Connect wallet to manage credential access.</p>
+            <p className="text-muted">Kết nối ví để quản lý quyền truy cập tài liệu.</p>
             {wallets.length > 0 && wallets.map(w => (
               <button key={w.name} type="button" onClick={() => connect.dispatch(w)} disabled={connect.isRunning} className="mt-4 w-fit rounded-lg bg-foreground px-4 py-2 font-medium text-background disabled:opacity-50">
-                {connect.isRunning ? 'Connecting...' : `Connect ${w.name}`}
+                {connect.isRunning ? 'Đang kết nối...' : `Kết nối ${w.name}`}
               </button>
             ))}
           </section>
@@ -170,13 +170,13 @@ export default function SubjectGrantsPage() {
           <section className="rounded-2xl border border-border-low bg-card p-6 shadow-[0_20px_80px_-50px_rgba(0,0,0,0.35)]">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-sm text-muted">Connected wallet</p>
+                <p className="text-sm text-muted">Ví đang kết nối</p>
                 <p className="mt-1 break-all font-mono text-xs">{connectedWallet.account.address}</p>
               </div>
-              <button type="button" onClick={() => disconnect.dispatch()} className="rounded-lg border border-border-low px-3 py-2 text-sm">Disconnect</button>
+                <button type="button" onClick={() => disconnect.dispatch()} className="rounded-lg border border-border-low px-3 py-2 text-sm">Ngắt kết nối</button>
             </div>
 
-            {pageState === 'loading' && <p className="mt-4 text-sm text-muted">Loading credentials...</p>}
+            {pageState === 'loading' && <p className="mt-4 text-sm text-muted">Đang tải chứng nhận...</p>}
             {pageState === 'error' && <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4">{pageError}</div>}
 
             {pageState === 'ready' && (

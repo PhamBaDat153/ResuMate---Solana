@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
-import { Sidebar } from '@/components/sidebar'
+import { DashboardShell } from '@/components/dashboard-shell'
 import { SolanaProvider } from '@/components/solana-provider'
 import './globals.css'
 
@@ -28,8 +28,7 @@ export default function RootLayout({
     <html lang="vi">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <SolanaProvider>
-          <Sidebar />
-          <div className="pl-0 md:pl-60">{children}</div>
+          <DashboardShell>{children}</DashboardShell>
         </SolanaProvider>
       </body>
     </html>

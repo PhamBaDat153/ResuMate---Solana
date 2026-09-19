@@ -242,38 +242,38 @@ export default function IssuerPage() {
   const revokedCount = credentials.filter((c) => c.status === 'Revoked').length
 
   return (
-    <main className="min-h-screen bg-background pl-60">
-      <div className="mx-auto max-w-5xl px-8 py-12">
+    <main className="min-h-screen bg-background">
+      <div className="mx-auto max-w-5xl">
         <header className="mb-8">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted">Issuer</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight">Issuer Console</h1>
-          <p className="mt-3 max-w-2xl leading-7 text-muted">Issue and manage encrypted credentials.</p>
+          <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted">Tổ chức của tôi</p>
+          <h1 className="mt-3 text-4xl font-semibold tracking-tight">Cổng cấp chứng nhận</h1>
+          <p className="mt-3 max-w-2xl leading-7 text-muted">Cấp và quản lý các chứng nhận được mã hóa cho người nhận.</p>
         </header>
 
         {!connectedWallet ? (
           <section className="rounded-2xl border border-border-low bg-card p-6">
-            <p className="text-muted">Connect wallet to access issuer console.</p>
+            <p className="text-muted">Kết nối ví để truy cập cổng cấp chứng nhận.</p>
             {wallets.length > 0 ? wallets.map((w) => (
               <button key={w.name} type="button" onClick={() => connect.dispatch(w)} disabled={connect.isRunning} className="mt-4 w-fit rounded-lg bg-foreground px-4 py-2 font-medium text-background disabled:opacity-50">
-                {connect.isRunning ? 'Connecting...' : `Connect ${w.name}`}
+                {connect.isRunning ? 'Đang kết nối...' : `Kết nối ${w.name}`}
               </button>
-            )) : <p className="mt-3 text-sm text-muted">No compatible wallet found.</p>}
+            )) : <p className="mt-3 text-sm text-muted">Không tìm thấy ví tương thích.</p>}
           </section>
         ) : (
           <section className="rounded-2xl border border-border-low bg-card p-6 shadow-[0_20px_80px_-50px_rgba(0,0,0,0.35)]">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-sm text-muted">Connected wallet</p>
+                <p className="text-sm text-muted">Ví đang kết nối</p>
                 <p className="mt-1 break-all font-mono text-xs">{connectedWallet.account.address}</p>
               </div>
-              <button type="button" onClick={() => disconnect.dispatch()} className="rounded-lg border border-border-low px-3 py-2 text-sm">Disconnect</button>
+              <button type="button" onClick={() => disconnect.dispatch()} className="rounded-lg border border-border-low px-3 py-2 text-sm">Ngắt kết nối</button>
             </div>
 
-            {pageState === 'loading' && <p className="mt-4 text-muted">Loading issuer data...</p>}
-            {pageState === 'error' && <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4"><p>{pageError}</p><button type="button" onClick={() => void loadIssuer()} className="mt-2 underline text-sm">Retry</button></div>}
+            {pageState === 'loading' && <p className="mt-4 text-muted">Đang tải thông tin đơn vị cấp...</p>}
+            {pageState === 'error' && <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4"><p>{pageError}</p><button type="button" onClick={() => void loadIssuer()} className="mt-2 underline text-sm">Thử lại</button></div>}
             {pageState === 'unregistered' && (
               <div className="mt-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
-                <p>This wallet is not registered as an issuer. Contact the Registry Authority to be registered.</p>
+                <p>Ví này chưa được đăng ký là đơn vị cấp. Hãy liên hệ quản trị hệ thống để được đăng ký.</p>
               </div>
             )}
 

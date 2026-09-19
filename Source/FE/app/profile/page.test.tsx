@@ -68,7 +68,7 @@ describe('ProfilePage', () => {
   it('asks a disconnected user to connect a wallet', () => {
     render(<ProfilePage />)
     expect(screen.getByText('Kết nối ví Solana để kiểm tra hoặc tạo profile.')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Tạo profile' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Tạo hồ sơ' })).not.toBeInTheDocument()
   })
 
   it('detects an existing profile and displays its counters', async () => {
@@ -86,7 +86,7 @@ describe('ProfilePage', () => {
     expect(await screen.findByText('Resume count')).toBeInTheDocument()
     expect(screen.getByText('2')).toBeInTheDocument()
     expect(screen.getByText('3')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Tạo profile' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Tạo hồ sơ' })).not.toBeInTheDocument()
     expect(await screen.findByRole('button', { name: 'Tạo resume' })).toBeInTheDocument()
     expect(screen.getByText('ID 2')).toBeInTheDocument()
   })
@@ -111,10 +111,10 @@ describe('ProfilePage', () => {
 
     const user = userEvent.setup()
     render(<ProfilePage />)
-    await user.click(await screen.findByRole('button', { name: 'Tạo profile' }))
+    await user.click(await screen.findByRole('button', { name: 'Tạo hồ sơ' }))
 
     expect(screen.getByText('Đang chờ ví ký và xác nhận giao dịch...')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'Tạo profile' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Tạo hồ sơ' })).not.toBeInTheDocument()
     expect(mockCreateProfile).toHaveBeenCalledTimes(1)
 
     confirmTransaction?.()
@@ -129,12 +129,12 @@ describe('ProfilePage', () => {
 
     const user = userEvent.setup()
     render(<ProfilePage />)
-    await user.click(await screen.findByRole('button', { name: 'Tạo profile' }))
+    await user.click(await screen.findByRole('button', { name: 'Tạo hồ sơ' }))
 
     expect(await screen.findByRole('alert')).toHaveTextContent('Bạn đã từ chối ký giao dịch.')
     await user.click(screen.getByRole('button', { name: 'Thử lại' }))
     await waitFor(() => expect(mockFetchProfile).toHaveBeenCalledTimes(2))
-    expect(await screen.findByRole('button', { name: 'Tạo profile' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Tạo hồ sơ' })).toBeInTheDocument()
   })
 
   it('requires profile creation before offering resume creation', async () => {
@@ -143,7 +143,7 @@ describe('ProfilePage', () => {
 
     render(<ProfilePage />)
 
-    expect(await screen.findByRole('button', { name: 'Tạo profile' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: 'Tạo hồ sơ' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Tạo resume' })).not.toBeInTheDocument()
     expect(mockCreateResume).not.toHaveBeenCalled()
   })
