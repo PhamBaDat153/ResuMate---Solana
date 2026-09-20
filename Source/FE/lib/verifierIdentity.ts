@@ -32,7 +32,9 @@ export async function lookupVerifierIdentity(wallet: string): Promise<VerifierId
   const response = await fetch(`/api/credentials/public-key/${encodeURIComponent(wallet)}`)
   if (response.status === 404) return null
   if (!response.ok) throw new Error('Unable to load verifier encryption public key.')
-  return response.json()
+  const data = await response.json()
+  if (!data.encryptionPublicKey || !data.keyVersion) return null
+  return data
 }
 
 export async function getVerifierPublicKey(wallet: string): Promise<VerifierIdentityRegistration | null> {

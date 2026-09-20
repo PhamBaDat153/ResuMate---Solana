@@ -7,7 +7,7 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-resume = "8SVXDqsBg2qQGxddweHmkG8rehnAzRx6uesjrv8TcR63"
+resume = "ALLqbVMzsRvAJMG7J7yCyj4XdLb1PBYcqMzYWfAy7iZ1"
 
 [provider]
 cluster = "localnet"

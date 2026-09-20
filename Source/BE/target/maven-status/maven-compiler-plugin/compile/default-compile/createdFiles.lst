@@ -1,8 +1,10 @@
 resumate\source_code\DTO\EvaluateResponse$EvaluateResponseBuilder.class
 resumate\source_code\Service\CloudinarySdkUploadClient.class
+resumate\source_code\Service\PublicKeyRegistryService.class
 resumate\source_code\Service\CloudinaryUploadClient$CloudinaryAsset.class
 resumate\source_code\Service\Function\CVEvaluateServiceImplement.class
 resumate\source_code\Config\CloudinaryConfiguration.class
+resumate\source_code\Service\PublicKeyRegistryService$PublicKeyRecord.class
 resumate\source_code\Service\Function\JobMatchingService.class
 resumate\source_code\Service\Function\CVEvaluateServiceImplement$1.class
 resumate\source_code\Service\ArbeitnowJobProvider.class

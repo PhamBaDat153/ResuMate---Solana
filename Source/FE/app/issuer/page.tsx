@@ -20,10 +20,15 @@ import {
   hashClaimsEnvelope,
   sha256Hex,
   encryptDocument,
+  wrapAesKey,
+  importPublicKey,
   type ClaimsRecord,
 } from '@/lib/credentialCrypto'
-import { getStoredPublicKey, hasStoredIdentity } from '@/lib/encryptionIdentity'
+import { hasStoredIdentity } from '@/lib/encryptionIdentity'
 import { uploadEncryptedCredentialPackage } from '@/lib/credentialPackageApi'
+import { lookupVerifierIdentity } from '@/lib/verifierIdentity'
+import { createAccessGrant } from '@/lib/grantProgram'
+import { deriveCredentialAddress } from '@/lib/credentialProgram'
 
 const ISSUER_TYPE_LABELS: Record<number, string> = {
   1: 'University',
@@ -34,7 +39,7 @@ const ISSUER_TYPE_LABELS: Record<number, string> = {
 }
 
 type PageState = 'idle' | 'loading' | 'unregistered' | 'active' | 'inactive' | 'error'
-type IssueState = 'idle' | 'preparing' | 'encrypting' | 'ready' | 'signing' | 'verifying' | 'success' | 'error'
+type IssueState = 'idle' | 'preparing' | 'encrypting' | 'ready' | 'signing' | 'granting' | 'verifying' | 'success' | 'error'
 
 export default function IssuerPage() {
   const client = useClient<SolanaWalletClient>()
@@ -62,6 +67,7 @@ export default function IssuerPage() {
   const [issueState, setIssueState] = useState<IssueState>('idle')
   const [issueError, setIssueError] = useState<string | null>(null)
   const [previewHashes, setPreviewHashes] = useState<{ typeHash: string; claimsHash: string; docHash: string; canonical: string } | null>(null)
+  const [preparedAesKey, setPreparedAesKey] = useState<CryptoKey | null>(null)
   const [revokeTarget, setRevokeTarget] = useState<string | null>(null)
   const [revokeError, setRevokeError] = useState<string | null>(null)
 
@@ -154,16 +160,18 @@ export default function IssuerPage() {
       const claimsHashHex = Array.from(claimsHashBytes).map((b) => b.toString(16).padStart(2, '0')).join('')
 
       setIssueState('encrypting')
-      const { ciphertext, iv } = await encryptDocument(docBytes)
+      const { ciphertext, iv, key } = await encryptDocument(docBytes)
       const ciphertextBase64 = bytesToBase64(ciphertext)
       const ivBase64 = bytesToBase64(iv)
 
       const uploadResult = await uploadEncryptedCredentialPackage({
+        version: 1,
         algorithm: 'AES-256-GCM',
         ivBase64,
         ciphertextBase64,
         documentHash: docHash,
         claimsHash: claimsHashHex,
+        claims,
         mimeType: documentFile.type || 'application/octet-stream',
         originalFileName: documentFile.name,
       })
@@ -182,6 +190,7 @@ export default function IssuerPage() {
 
       setCredentialUri(packageUri)
       setPreviewHashes({ typeHash: typeHashHex, claimsHash: claimsHashHex, docHash, canonical })
+      setPreparedAesKey(key)
       setIssueState('ready')
     } catch (e) {
       setIssueState('error')
@@ -190,24 +199,46 @@ export default function IssuerPage() {
   }
 
   async function executeIssue() {
-    if (!connectedWallet?.signer || !issuer || !subjectProfile || !previewHashes || !documentFile) return
+    if (!connectedWallet?.signer || !issuer || !subjectProfile || !previewHashes || !documentFile || !preparedAesKey) return
     setIssueState('encrypting')
     setIssueError(null)
     try {
-      const pubKeyBytes = getStoredPublicKey()
-      if (!pubKeyBytes) throw new Error('Cannot load encryption public key.')
-
       const typeHashBytes = new Uint8Array(previewHashes.typeHash.match(/.{2}/g)!.map((h) => parseInt(h, 16)))
       const claimsHashBytes = new Uint8Array(previewHashes.claimsHash.match(/.{2}/g)!.map((h) => parseInt(h, 16)))
       const subjectAddr = address(subjectKey.trim()) as Address
       const credentialId = subjectProfile.credentialCount
       const expiresAt = expiryEnabled && expiryDate ? BigInt(Math.floor(new Date(expiryDate).getTime() / 1000)) : null
 
+      const subjectIdentity = await lookupVerifierIdentity(subjectKey.trim())
+      if (!subjectIdentity || !subjectIdentity.encryptionPublicKey) {
+        throw new Error('Subject has not registered an encryption public key. They must complete encryption setup first.')
+      }
+      const subjectPubKeySpki = Uint8Array.from(atob(subjectIdentity.encryptionPublicKey), c => c.charCodeAt(0))
+      const subjectPubKey = await importPublicKey(subjectPubKeySpki)
+      const wrappedKeyForSubject = await wrapAesKey(preparedAesKey, subjectPubKey)
+      if (wrappedKeyForSubject.length > 512) {
+        throw new Error('Wrapped document key exceeds 512-byte on-chain limit.')
+      }
+
       setIssueState('signing')
       const issuerAddr = address(connectedWallet.account.address) as Address
       const result = await issueCredential(client, issuerAddr, subjectAddr, credentialId, typeHashBytes, claimsHashBytes, credentialUri, expiresAt)
-      setIssueState('verifying')
       if (!result) throw new Error('Transaction sent but credential not confirmed on-chain.')
+
+      setIssueState('granting')
+      const credentialAddr = await deriveCredentialAddress(subjectAddr, credentialId)
+      const grantId = BigInt(0)
+      await createAccessGrant(
+        client,
+        issuerAddr,
+        credentialAddr,
+        subjectAddr,
+        grantId,
+        subjectIdentity.keyVersion,
+        wrappedKeyForSubject,
+        null,
+      )
+
       await loadIssuer()
       setIssueState('success')
       setDocumentFile(null)
@@ -215,6 +246,7 @@ export default function IssuerPage() {
       setCredentialType('')
       setCredentialUri('')
       setPreviewHashes(null)
+      setPreparedAesKey(null)
       setSubjectProfile(null)
       setSubjectKey('')
     } catch (e) {
@@ -385,16 +417,16 @@ export default function IssuerPage() {
                           <button type="button" onClick={() => void executeIssue()} disabled={!connectedWallet.signer} className="rounded-lg bg-foreground px-4 py-2 font-medium text-background disabled:opacity-50">
                             Sign and issue
                           </button>
-                          <button type="button" onClick={() => { setIssueState('idle'); setPreviewHashes(null) }} className="rounded-lg border border-border-low px-4 py-2 text-sm">
+                          <button type="button" onClick={() => { setIssueState('idle'); setPreviewHashes(null); setPreparedAesKey(null) }} className="rounded-lg border border-border-low px-4 py-2 text-sm">
                             Cancel
                           </button>
                         </div>
                       </div>
                     )}
 
-                    {(issueState === 'preparing' || issueState === 'encrypting' || issueState === 'signing' || issueState === 'verifying') && (
+                    {(issueState === 'preparing' || issueState === 'encrypting' || issueState === 'signing' || issueState === 'granting' || issueState === 'verifying') && (
                       <p className="mt-4 text-sm text-muted" role="status">
-                        {issueState === 'preparing' ? 'Preparing...' : issueState === 'encrypting' ? 'Encrypting...' : issueState === 'signing' ? 'Waiting for signature...' : 'Verifying on-chain...'}
+                        {issueState === 'preparing' ? 'Preparing...' : issueState === 'encrypting' ? 'Encrypting...' : issueState === 'signing' ? 'Waiting for signature...' : issueState === 'granting' ? 'Creating access grant...' : 'Verifying on-chain...'}
                       </p>
                     )}
 

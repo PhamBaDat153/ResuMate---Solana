@@ -46,10 +46,10 @@ Frontend, backend, storage va indexer khong co quyen dac biet neu khong co signe
 | 6 | Khoi tao issuer registry [Hoan thanh] | `initialize_issuer_registry` | Registry Authority | Frontend, System Program | Tao registry PDA va gan authority |
 | 7 | Dang ky issuer [Hoan thanh] | `register_issuer` | Registry Authority | Issuer, Frontend | Tao issuer PDA va dat active |
 | 8 | Bat/tat issuer [Hoan thanh] | `set_issuer_active` | Registry Authority | Issuer, Frontend | Cap nhat `is_active` |
-| 9 | Cap credential [Hoan thanh] | `issue_credential` | Issuer | Subject, Storage, Frontend | Tao credential active cho subject |
+| 9 | Cap credential | `issue_credential` | Issuer | Subject, Storage, Frontend | Tao credential active cho subject |
 | 10 | Chap nhan credential | `accept_credential` | Subject | Frontend, Issuer | Cap nhat `subject_accepted` |
 | 11 | Bo chap nhan credential | `accept_credential(false)` | Subject | Frontend | Credential khong duoc subject chap nhan de hien thi |
-| 12 | Thu hoi credential [Hoan thanh] | `revoke_credential` | Issuer | Subject, Frontend | Chuyen credential tu `Active` sang `Revoked` |
+| 12 | Thu hoi credential | `revoke_credential` | Issuer | Subject, Frontend | Chuyen credential tu `Active` sang `Revoked` |
 | 13 | Xac minh resume | Doc account va tinh hash | Recruiter / Verifier | RPC, Storage, Indexer | Kiem tra file trung voi hash on-chain |
 | 14 | Xac minh credential | Doc account va kiem tra status | Recruiter / Verifier | RPC, Storage, Indexer | Kiem tra issuer, claims hash, expiry va revoke status |
 
@@ -143,8 +143,10 @@ Owner co the danh dau mot version la revoked. Account van ton tai de giu lich su
 
 ## 4.2 Registry Authority
 
-### Khoi tao registry
+### Khoi tao registry - xong
 
+**Trang thai:** Da hoan thanh.
+ 
 **Instruction:** `initialize_issuer_registry`
 
 Registry Authority tao mot registry duy nhat voi seed:
@@ -155,7 +157,9 @@ Registry Authority tao mot registry duy nhat voi seed:
 
 Registry luu dia chi authority. Vi nay la goc tin cay cua he thong issuer.
 
-### Dang ky issuer
+### Dang ky issuer - xong
+
+**Trang thai:** Da hoan thanh.
 
 **Instruction:** `register_issuer(issuer_type)`
 
@@ -174,7 +178,10 @@ Issuer duoc tao voi:
 
 Issuer wallet khong can tu ky giao dich dang ky. Authority la actor co quyen phe duyet.
 
-### Bat/tat issuer
+### Bat/tat issuer - xong
+
+
+**Trang thai:** Da hoan thanh.
 
 **Instruction:** `set_issuer_active(is_active)`
 
@@ -187,11 +194,9 @@ Registry Authority co the tam dung issuer khi:
 
 Issuer bi inactive khong the issue credential moi. Code hien tai van cho phep issuer dung de revoke credential cua minh.
 
-## 4.3 Issuer - xong
+## 4.3 Issuer
 
-### Cap credential - xong
-
-**Trang thai:** Da hoan thanh.
+### Cap credential
 
 **Instruction:** `issue_credential`
 
@@ -220,9 +225,7 @@ Credential luu:
 
 Issuer phai thanh toan rent cho credential account.
 
-### Thu hoi credential - xong
-
-**Trang thai:** Da hoan thanh.
+### Thu hoi credential
 
 **Instruction:** `revoke_credential`
 

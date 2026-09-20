@@ -7,11 +7,13 @@ export interface CredentialPackageUploadResponse {
 }
 
 export async function uploadEncryptedCredentialPackage(payload: {
+  version?: number
   algorithm: string
   ivBase64: string
   ciphertextBase64: string
   documentHash: string
   claimsHash: string
+  claims: Record<string, string>
   mimeType: string
   originalFileName: string
 }): Promise<CredentialPackageUploadResponse> {

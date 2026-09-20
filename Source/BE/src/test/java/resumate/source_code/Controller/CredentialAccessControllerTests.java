@@ -2,15 +2,16 @@ package resumate.source_code.Controller;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
+import resumate.source_code.Service.PublicKeyRegistryService;
 
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CredentialAccessControllerTests {
-    private final CredentialAccessController controller = new CredentialAccessController();
+    private final PublicKeyRegistryService registry = new PublicKeyRegistryService();
+    private final CredentialAccessController controller = new CredentialAccessController(registry);
 
     @Test
     void rejectsMissingPublicKeyRegistrationFields() {
@@ -20,11 +21,19 @@ class CredentialAccessControllerTests {
     }
 
     @Test
-    void returnsLookupShapeWithoutPrivateKey() {
-        ResponseEntity<Map<String, Object>> response = controller.getPublicKey("wallet");
+    void registersAndLooksUpPublicKey() {
+        controller.registerPublicKey(Map.of("wallet", "w1", "encryptionPublicKey", "pk1", "keyVersion", 1));
+        ResponseEntity<?> response = controller.getPublicKey("w1");
         assertEquals(200, response.getStatusCode().value());
-        assertEquals("wallet", response.getBody().get("wallet"));
-        assertEquals("", response.getBody().get("encryptionPublicKey"));
-        assertFalse(response.getBody().containsKey("privateKey"));
+        Map body = (Map) response.getBody();
+        assertEquals("w1", body.get("wallet"));
+        assertEquals("pk1", body.get("encryptionPublicKey"));
+        assertEquals(1, body.get("keyVersion"));
+    }
+
+    @Test
+    void returns404ForUnknownWallet() {
+        ResponseEntity<?> response = controller.getPublicKey("unknown");
+        assertEquals(404, response.getStatusCode().value());
     }
 }
