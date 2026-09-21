@@ -77,5 +77,7 @@ module.exports = {
       },
     },
   },
+  // Tailwind loads this CommonJS config directly; the plugin has no ESM config export.
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   plugins: [require("tailwindcss-animate")],
 }

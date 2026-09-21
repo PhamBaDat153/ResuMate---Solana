@@ -20,14 +20,15 @@ import {
   hashClaimsEnvelope,
   sha256Hex,
   encryptDocument,
-  wrapAesKey,
-  importPublicKey,
   type ClaimsRecord,
 } from '@/lib/credentialCrypto'
 import { hasStoredIdentity } from '@/lib/encryptionIdentity'
 import { uploadEncryptedCredentialPackage } from '@/lib/credentialPackageApi'
-import { lookupVerifierIdentity } from '@/lib/verifierIdentity'
+import { prepareIssuerAccessGrantKey, validateWrappedDocumentKey } from '@/lib/issuerGrant'
 import { createAccessGrant } from '@/lib/grantProgram'
+import { fetchAccessGrantsForCredential, type AccessGrantAccount } from '@/lib/grantProgram'
+import { OperationFeedback } from '@/components/operation-feedback'
+import { createErrorState, createIdleState, createPreparingState, createSigningState, createSuccessState, type OperationState } from '@/lib/operationFeedback'
 import { deriveCredentialAddress } from '@/lib/credentialProgram'
 import { PageHeader } from '@/components/page-header'
 import { Button } from '@/components/ui/button'
@@ -74,6 +75,22 @@ export default function IssuerPage() {
   const [preparedAesKey, setPreparedAesKey] = useState<CryptoKey | null>(null)
   const [revokeTarget, setRevokeTarget] = useState<string | null>(null)
   const [revokeError, setRevokeError] = useState<string | null>(null)
+  const [grantTarget, setGrantTarget] = useState<string>('')
+  const [issuerGrants, setIssuerGrants] = useState<AccessGrantAccount[]>([])
+  const [grantState, setGrantState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [operation, setOperation] = useState<OperationState>(createIdleState('issuer'))
+
+  const loadIssuerGrants = useCallback(async (credentialAddress: string) => {
+    setGrantTarget(credentialAddress)
+    setGrantState('loading')
+    try {
+      setIssuerGrants(await fetchAccessGrantsForCredential(client, address(credentialAddress) as Address))
+      setGrantState('ready')
+    } catch (e) {
+      setGrantState('error')
+      setOperation(createErrorState('tải quyền truy cập', e))
+    }
+  }, [client])
 
   const loadIssuer = useCallback(async () => {
     if (!connectedWallet) {
@@ -205,6 +222,7 @@ export default function IssuerPage() {
   async function executeIssue() {
     if (!connectedWallet?.signer || !issuer || !subjectProfile || !previewHashes || !documentFile || !preparedAesKey) return
     setIssueState('encrypting')
+    setOperation(createPreparingState('cấp credential'))
     setIssueError(null)
     try {
       const typeHashBytes = new Uint8Array(previewHashes.typeHash.match(/.{2}/g)!.map((h) => parseInt(h, 16)))
@@ -213,18 +231,11 @@ export default function IssuerPage() {
       const credentialId = subjectProfile.credentialCount
       const expiresAt = expiryEnabled && expiryDate ? BigInt(Math.floor(new Date(expiryDate).getTime() / 1000)) : null
 
-      const subjectIdentity = await lookupVerifierIdentity(subjectKey.trim())
-      if (!subjectIdentity || !subjectIdentity.encryptionPublicKey) {
-        throw new Error('Subject has not registered an encryption public key. They must complete encryption setup first.')
-      }
-      const subjectPubKeySpki = Uint8Array.from(atob(subjectIdentity.encryptionPublicKey), c => c.charCodeAt(0))
-      const subjectPubKey = await importPublicKey(subjectPubKeySpki)
-      const wrappedKeyForSubject = await wrapAesKey(preparedAesKey, subjectPubKey)
-      if (wrappedKeyForSubject.length > 512) {
-        throw new Error('Wrapped document key exceeds 512-byte on-chain limit.')
-      }
+      const subjectGrantKey = await prepareIssuerAccessGrantKey(preparedAesKey, subjectKey.trim())
+      validateWrappedDocumentKey(subjectGrantKey.wrappedDocumentKey)
 
       setIssueState('signing')
+      setOperation(createSigningState('cấp credential'))
       const issuerAddr = address(connectedWallet.account.address) as Address
       const result = await issueCredential(client, issuerAddr, subjectAddr, credentialId, typeHashBytes, claimsHashBytes, credentialUri, expiresAt)
       if (!result) throw new Error('Transaction sent but credential not confirmed on-chain.')
@@ -238,10 +249,11 @@ export default function IssuerPage() {
         credentialAddr,
         subjectAddr,
         grantId,
-        subjectIdentity.keyVersion,
-        wrappedKeyForSubject,
+         subjectGrantKey.recipientKeyVersion,
+         subjectGrantKey.wrappedDocumentKey,
         null,
       )
+      setOperation(createSuccessState('Cấp credential'))
 
       await loadIssuer()
       setIssueState('success')
@@ -258,6 +270,7 @@ export default function IssuerPage() {
       setIssueState('error')
       const message = getCredentialError(e)
       setIssueError(message)
+      setOperation(createErrorState('cấp credential', e))
       toast.error('Cấp chứng nhận thất bại', { description: message })
     }
   }
@@ -265,13 +278,16 @@ export default function IssuerPage() {
   async function handleRevoke(cred: CredentialAccount) {
     if (!connectedWallet?.signer || !issuer) return
     setRevokeTarget(cred.address)
+    setOperation(createPreparingState('thu hồi credential'))
     setRevokeError(null)
     try {
       const issuerAddr = address(connectedWallet.account.address) as Address
       await revokeCredential(client, issuerAddr, cred.subject, cred.credentialId)
+      setOperation(createSuccessState('Thu hồi credential'))
       await loadIssuer()
     } catch (e) {
       setRevokeError(getCredentialError(e))
+      setOperation(createErrorState('thu hồi credential', e))
     } finally {
       setRevokeTarget(null)
     }
@@ -452,6 +468,7 @@ export default function IssuerPage() {
                         <button type="button" onClick={() => setIssueState('idle')} className="mt-2 text-sm underline">Try again</button>
                       </div>
                     )}
+                    <OperationFeedback state={operation} network={process.env.NEXT_PUBLIC_NETWORK} onRetry={operation.retryable ? () => setIssueState('idle') : undefined} />
                   </div>
                 )}
 
@@ -498,12 +515,37 @@ export default function IssuerPage() {
                       </table>
                     </div>
                   )}
+                  {credentials.length > 0 && (
+                    <div className="mt-5 rounded-xl border border-border-low p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <h3 className="font-semibold">AccessGrant hiện tại</h3>
+                          <p className="text-xs text-muted">Chọn credential để xem quyền truy cập hiện tại, không phải audit timeline.</p>
+                        </div>
+                        <select value={grantTarget} onChange={(event) => void loadIssuerGrants(event.target.value)} className="rounded-lg border border-border-low bg-card px-3 py-2 text-sm">
+                          <option value="">Chọn credential</option>
+                          {credentials.map((credential) => <option key={credential.address} value={credential.address}>#{credential.credentialId.toString()}</option>)}
+                        </select>
+                      </div>
+                      {grantState === 'loading' && <p className="mt-3 text-sm text-muted">Đang tải grant...</p>}
+                      {grantState === 'error' && <p className="mt-3 text-sm text-red-600">Không thể tải AccessGrant.</p>}
+                      {grantState === 'ready' && issuerGrants.length === 0 && <p className="mt-3 text-sm text-muted">Credential chưa có AccessGrant.</p>}
+                      {issuerGrants.map((grant) => <div key={grant.address} className="mt-3 rounded-lg border border-border-low p-3 text-xs">
+                        <p className="font-medium">{grant.status}</p>
+                        <p className="break-all font-mono">Recipient: {grant.recipient}</p>
+                        <p className="break-all font-mono">Grantor: {grant.grantor}</p>
+                        <p className="text-muted">Key v{grant.recipientKeyVersion} · Created {new Date(Number(grant.createdAt) * 1000).toLocaleString()}</p>
+                        {grant.expiresAt !== null && <p className="text-muted">Expires {new Date(Number(grant.expiresAt) * 1000).toLocaleString()}</p>}
+                      </div>)}
+                    </div>
+                  )}
                 </div>
               </>
             )}
           </CardContent>
         </Card>
       )}
+      <OperationFeedback state={operation} network={process.env.NEXT_PUBLIC_NETWORK} />
     </div>
   )
 }

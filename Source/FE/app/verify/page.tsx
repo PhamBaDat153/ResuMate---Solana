@@ -16,6 +16,8 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { OperationFeedback } from '@/components/operation-feedback'
+import { createErrorState, createPreparingState, createSuccessState, type OperationState } from '@/lib/operationFeedback'
 
 export default function VerifyPage() {
   const client = useClient<SolanaWalletClient>()
@@ -26,10 +28,12 @@ export default function VerifyPage() {
   const [result, setResult] = useState<VerificationResult | null>(null)
   const [state, setState] = useState<'idle' | 'verifying' | 'done' | 'error'>('idle')
   const [error, setError] = useState<string | null>(null)
+  const [operation, setOperation] = useState<OperationState>(createPreparingState('xác minh'))
 
   async function verify() {
     if (!connectedWallet) return
     setState('verifying')
+    setOperation(createPreparingState('xác minh chứng nhận'))
     setError(null)
     setResult(null)
     toast.message('Đang xác minh chứng nhận…')
@@ -44,12 +48,14 @@ export default function VerifyPage() {
       )
       setResult(next)
       setState('done')
+      setOperation(next.verified ? createSuccessState('Xác minh chứng nhận') : createErrorState('xác minh chứng nhận', new Error(next.reason ?? 'Verification failed.')))
       if (next.verified) toast.success('Chứng nhận hợp lệ')
       else toast.error('Không thể xác minh', { description: next.reason ?? undefined })
     } catch (value) {
       const message = value instanceof Error ? value.message : 'Verification failed.'
       setError(message)
       setState('error')
+      setOperation(createErrorState('xác minh chứng nhận', value))
       toast.error('Xác minh thất bại', { description: message })
     }
   }
@@ -166,6 +172,7 @@ export default function VerifyPage() {
               )}
             </div>
           )}
+          <OperationFeedback state={operation} network={process.env.NEXT_PUBLIC_NETWORK} onRetry={operation.retryable ? () => void verify() : undefined} />
         </CardContent>
       </Card>
     </div>

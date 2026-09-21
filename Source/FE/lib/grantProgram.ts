@@ -197,7 +197,7 @@ export async function createAccessGrant(
 ) {
   const accessGrant = await deriveAccessGrantAddress(credential, recipient, grantId)
   const ix = await createAccessGrantInstruction(grantor, credential, recipient, accessGrant, grantId, recipientKeyVersion, wrappedDocumentKey, expiresAt)
-  await client.sendTransaction([ix])
+  return client.sendTransaction([ix])
 }
 
 export async function revokeAccessGrant(
@@ -209,7 +209,7 @@ export async function revokeAccessGrant(
 ) {
   const accessGrant = await deriveAccessGrantAddress(credential, recipient, grantId)
   const ix = await revokeAccessGrantInstruction(grantor, credential, recipient, accessGrant, grantId)
-  await client.sendTransaction([ix])
+  return client.sendTransaction([ix])
 }
 
 export async function createLinkGrant(
@@ -224,7 +224,7 @@ export async function createLinkGrant(
 ) {
   const linkGrant = await deriveLinkGrantAddress(credential, linkGrantId)
   const ix = await createLinkGrantInstruction(grantor, credential, linkGrant, linkGrantId, secretHash, wrappedDocumentKey, expiresAt, maxUses)
-  await client.sendTransaction([ix])
+  return client.sendTransaction([ix])
 }
 
 export async function revokeLinkGrant(
@@ -235,7 +235,7 @@ export async function revokeLinkGrant(
 ) {
   const linkGrant = await deriveLinkGrantAddress(credential, linkGrantId)
   const ix = await revokeLinkGrantInstruction(grantor, credential, linkGrant, linkGrantId)
-  await client.sendTransaction([ix])
+  return client.sendTransaction([ix])
 }
 
 type EncodedProgramAccount = { programAddress: Address; data: Uint8Array }
@@ -373,6 +373,6 @@ export async function consumeLinkGrant(
 ) {
   const linkGrant = await deriveLinkGrantAddress(credential, linkGrantId)
   const ix = await consumeLinkGrantInstruction(consumer, credential, linkGrant, linkGrantId, secret)
-  await client.sendTransaction([ix])
+  return client.sendTransaction([ix])
 }
 

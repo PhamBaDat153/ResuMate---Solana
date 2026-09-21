@@ -1,11 +1,14 @@
 import { address } from '@solana/kit'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import {
   createAccessGrantInstruction,
   createLinkGrantInstruction,
   decodeAccessGrantAccount,
   deriveAccessGrantAddress,
   deriveLinkGrantAddress,
+  fetchAccessGrantByAddress,
+  fetchAccessGrantForCredentialAndRecipient,
+  fetchAccessGrantsForCredential,
   revokeAccessGrantInstruction,
   revokeLinkGrantInstruction,
 } from './grantProgram'
@@ -191,5 +194,106 @@ describe('decodeAccessGrantAccount', () => {
     extended[data.length] = 0
     const result = decodeAccessGrantAccount(CREDENTIAL, { programAddress: RESUME_PROGRAM_ID, data: extended })
     expect(result).toBeNull()
+  })
+})
+
+function encodeBase64(bytes: Uint8Array): string {
+  return btoa(String.fromCharCode(...bytes))
+}
+
+function mockClient(overrides: {
+  exists?: boolean
+  accountData?: Uint8Array
+  programAccounts?: Array<{ pubkey: string; account: { data: [string, string] } }>
+} = {}) {
+  const accountResult = overrides.exists === false || overrides.accountData === undefined
+    ? { exists: false, value: null }
+    : { exists: true, value: { data: [encodeBase64(overrides.accountData!), 'base64'], owner: RESUME_PROGRAM_ID } }
+  const getAccountInfo = vi.fn().mockReturnValue({
+    send: vi.fn().mockResolvedValue(accountResult),
+  })
+  const getProgramAccounts = vi.fn().mockReturnValue({
+    send: vi.fn().mockResolvedValue(overrides.programAccounts ?? []),
+  })
+  return {
+    rpc: {
+      getAccountInfo,
+      getProgramAccounts,
+    },
+  } as never
+}
+
+describe('fetchAccessGrantByAddress', () => {
+  it('returns null for missing accounts', async () => {
+    const client = mockClient({ exists: false })
+    const grantAddr = await deriveAccessGrantAddress(CREDENTIAL, RECIPIENT, BigInt(0))
+    const result = await fetchAccessGrantByAddress(client, grantAddr)
+    expect(result).toBeNull()
+  })
+
+  it('decodes a valid fetched account', async () => {
+    const data = buildAccessGrantBytes({ keyVersion: 3 })
+    const client = mockClient({ exists: true, accountData: data })
+    const grantAddr = await deriveAccessGrantAddress(CREDENTIAL, RECIPIENT, BigInt(0))
+    const result = await fetchAccessGrantByAddress(client, grantAddr)
+    expect(result).not.toBeNull()
+    expect(result!.recipientKeyVersion).toBe(3)
+  })
+
+  it('returns null for malformed account data from RPC', async () => {
+    const badData = new Uint8Array(10).fill(0)
+    const client = mockClient({ exists: true, accountData: badData })
+    const grantAddr = await deriveAccessGrantAddress(CREDENTIAL, RECIPIENT, BigInt(0))
+    const result = await fetchAccessGrantByAddress(client, grantAddr)
+    expect(result).toBeNull()
+  })
+})
+
+describe('fetchAccessGrantForCredentialAndRecipient', () => {
+  it('derives PDA and fetches by credential and recipient', async () => {
+    const data = buildAccessGrantBytes()
+    const client = mockClient({ exists: true, accountData: data })
+    const result = await fetchAccessGrantForCredentialAndRecipient(client, CREDENTIAL, RECIPIENT, BigInt(7))
+    expect(result).not.toBeNull()
+    expect(result!.status).toBe('Active')
+  })
+
+  it('returns null when no grant exists for given IDs', async () => {
+    const client = mockClient({ exists: false })
+    const result = await fetchAccessGrantForCredentialAndRecipient(client, CREDENTIAL, RECIPIENT, BigInt(99))
+    expect(result).toBeNull()
+  })
+})
+
+describe('fetchAccessGrantsForCredential', () => {
+  it('returns decoded grants from program accounts', async () => {
+    const data = buildAccessGrantBytes({ keyVersion: 5 })
+    const b64 = encodeBase64(data)
+    const client = mockClient({
+      programAccounts: [{ pubkey: 'GrantAddr1', account: { data: [b64, 'base64'] as [string, string] } }],
+    })
+    const results = await fetchAccessGrantsForCredential(client, CREDENTIAL)
+    expect(results.length).toBe(1)
+    expect(results[0].recipientKeyVersion).toBe(5)
+  })
+
+  it('filters out malformed entries from program accounts', async () => {
+    const validData = buildAccessGrantBytes()
+    const validB64 = encodeBase64(validData)
+    const invalidB64 = encodeBase64(new Uint8Array(5).fill(0))
+    const client = mockClient({
+      programAccounts: [
+        { pubkey: 'ValidGrant', account: { data: [validB64, 'base64'] as [string, string] } },
+        { pubkey: 'BadGrant', account: { data: [invalidB64, 'base64'] as [string, string] } },
+      ],
+    })
+    const results = await fetchAccessGrantsForCredential(client, CREDENTIAL)
+    expect(results.length).toBe(1)
+  })
+
+  it('returns empty array when no program accounts match', async () => {
+    const client = mockClient({ programAccounts: [] })
+    const results = await fetchAccessGrantsForCredential(client, CREDENTIAL)
+    expect(results.length).toBe(0)
   })
 })

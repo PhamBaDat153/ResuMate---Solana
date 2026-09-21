@@ -9,11 +9,18 @@ import type { SolanaWalletClient } from '@/components/solana-provider'
 import { fetchProfile } from '@/lib/profileProgram'
 import { fetchProfileCredentials, type CredentialAccount } from '@/lib/credentialProgram'
 import {
-  createAccessGrant,
-  revokeAccessGrant,
   createLinkGrant,
   revokeLinkGrant,
+  fetchAccessGrantsForCredential,
+  type AccessGrantAccount,
 } from '@/lib/grantProgram'
+import { OperationFeedback } from '@/components/operation-feedback'
+import { validateWrappedDocumentKey } from '@/lib/issuerGrant'
+import {
+  createErrorState,
+  createIdleState,
+  type OperationState,
+} from '@/lib/operationFeedback'
 import { PageHeader } from '@/components/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -38,15 +45,17 @@ export default function SubjectGrantsPage() {
   const [selectedCredential, setSelectedCredential] = useState<string>('')
   const [pageError, setPageError] = useState<string | null>(null)
 
-  const [verifierKey, setVerifierKey] = useState('')
-  const [wrappedKeyHex, setWrappedKeyHex] = useState('')
-  const [grantId, setGrantId] = useState('0')
   const [actionState, setActionState] = useState<GrantAction>('idle')
   const [actionError, setActionError] = useState<string | null>(null)
+  const [operation, setOperation] = useState<OperationState>(createIdleState('quản lý quyền truy cập'))
+  const [accessGrants, setAccessGrants] = useState<AccessGrantAccount[]>([])
+  const [grantState, setGrantState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
+  const [now] = useState(() => Math.floor(Date.now() / 1000))
 
   const [linkExpiryDays, setLinkExpiryDays] = useState('7')
   const [linkMaxUses, setLinkMaxUses] = useState('10')
   const [linkGrantId, setLinkGrantId] = useState('0')
+  const [linkWrappedKeyHex, setLinkWrappedKeyHex] = useState('')
 
   const loadCredentials = useCallback(async () => {
     if (!connectedWallet) {
@@ -73,52 +82,31 @@ export default function SubjectGrantsPage() {
     }
   }, [client, connectedWallet])
 
+  const loadAccessGrants = useCallback(async () => {
+    if (!selectedCredential) {
+      setAccessGrants([])
+      setGrantState('idle')
+      return
+    }
+    setGrantState('loading')
+    try {
+      setAccessGrants(await fetchAccessGrantsForCredential(client, address(selectedCredential) as Address))
+      setGrantState('ready')
+    } catch (e) {
+      setGrantState('error')
+      setOperation(createErrorState('tải quyền truy cập', e))
+    }
+  }, [client, selectedCredential])
+
   useEffect(() => {
     const refresh = window.setTimeout(() => void loadCredentials(), 0)
     return () => window.clearTimeout(refresh)
   }, [loadCredentials])
 
-  async function handleGrantAccess() {
-    if (!connectedWallet?.signer || !selectedCredential || !verifierKey.trim()) return
-    setActionState('granting')
-    setActionError(null)
-    try {
-      const grantor = address(connectedWallet.account.address) as Address
-      const credentialAddr = address(selectedCredential) as Address
-      const recipient = address(verifierKey.trim()) as Address
-      const gid = BigInt(grantId)
-      const wrappedKey = parseHex(wrappedKeyHex)
-      if (wrappedKey.length === 0 || wrappedKey.length > 512) throw new Error('Enter a valid wrapped document key (1-512 bytes).')
-      await createAccessGrant(client, grantor, credentialAddr, recipient, gid, 1, wrappedKey, null)
-      setActionState('idle')
-      toast.success('Đã cấp quyền truy cập')
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Failed to grant access.'
-      setActionState('error')
-      setActionError(message)
-      toast.error('Cấp quyền thất bại', { description: message })
-    }
-  }
-
-  async function handleRevokeAccess() {
-    if (!connectedWallet?.signer || !selectedCredential || !verifierKey.trim()) return
-    setActionState('revoking')
-    setActionError(null)
-    try {
-      const grantor = address(connectedWallet.account.address) as Address
-      const credentialAddr = address(selectedCredential) as Address
-      const recipient = address(verifierKey.trim()) as Address
-      const gid = BigInt(grantId)
-      await revokeAccessGrant(client, grantor, credentialAddr, recipient, gid)
-      setActionState('idle')
-      toast.success('Đã thu hồi quyền truy cập')
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Failed to revoke access.'
-      setActionState('error')
-      setActionError(message)
-      toast.error('Thu hồi thất bại', { description: message })
-    }
-  }
+  useEffect(() => {
+    const refresh = window.setTimeout(() => void loadAccessGrants(), 0)
+    return () => window.clearTimeout(refresh)
+  }, [loadAccessGrants])
 
   async function handleCreateLink() {
     if (!connectedWallet?.signer || !selectedCredential) return
@@ -133,7 +121,8 @@ export default function SubjectGrantsPage() {
       const days = parseInt(linkExpiryDays) || 7
       const expiresAt = BigInt(Math.floor(Date.now() / 1000) + days * 86400)
       const maxUses = parseInt(linkMaxUses) || 10
-      const wrappedKey = parseHex(wrappedKeyHex)
+      const wrappedKey = parseHex(linkWrappedKeyHex)
+      validateWrappedDocumentKey(wrappedKey)
       if (wrappedKey.length === 0 || wrappedKey.length > 512) throw new Error('Enter a valid wrapped document key (1-512 bytes).')
       await createLinkGrant(client, grantor, credentialAddr, lgid, secretHash, wrappedKey, expiresAt, maxUses)
       const secretHex = Array.from(secretBytes).map((b) => b.toString(16).padStart(2, '0')).join('')
@@ -257,60 +246,19 @@ export default function SubjectGrantsPage() {
                   </div>
                 )}
 
-                {selectedCredential && (
-                  <div className="grid gap-6 md:grid-cols-2">
-                    <Card className="border-border/80 bg-secondary/20">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">Wallet Verifier Access</CardTitle>
-                        <CardDescription>Cấp quyền theo ví verifier.</CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <label className="block text-sm font-medium">
-                          Verifier wallet address
-                          <Input
-                            value={verifierKey}
-                            onChange={(e) => setVerifierKey(e.target.value)}
-                            className="mt-1 font-mono text-xs"
-                            placeholder="Verifier public key"
-                          />
-                        </label>
-                        <label className="block text-sm font-medium">
-                          Grant ID
-                          <Input
-                            type="number"
-                            value={grantId}
-                            onChange={(e) => setGrantId(e.target.value)}
-                            className="mt-1"
-                            min={0}
-                          />
-                        </label>
-                        <label className="block text-sm font-medium">
-                          Wrapped document key (hex)
-                          <Input
-                            value={wrappedKeyHex}
-                            onChange={(e) => setWrappedKeyHex(e.target.value)}
-                            className="mt-1 font-mono text-xs"
-                            placeholder="RSA-OAEP wrapped AES key"
-                          />
-                        </label>
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          <Button
-                            type="button"
-                            onClick={handleGrantAccess}
-                            disabled={actionState !== 'idle' || !verifierKey.trim()}
-                          >
-                            {actionState === 'granting' ? 'Granting...' : 'Grant Access'}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleRevokeAccess}
-                            disabled={actionState !== 'idle' || !verifierKey.trim()}
-                          >
-                            {actionState === 'revoking' ? 'Revoking...' : 'Revoke Access'}
-                          </Button>
-                        </div>
-                      </CardContent>
+                 {selectedCredential && (
+                   <div className="grid gap-6 md:grid-cols-2">
+                     <Card className="border-border/80 bg-secondary/20">
+                       <CardHeader className="pb-2">
+                         <CardTitle className="text-lg">Wallet Verifier Access</CardTitle>
+                         <CardDescription>Quyền truy cập được issuer quản lý tự động.</CardDescription>
+                       </CardHeader>
+                       <CardContent className="space-y-3">
+                         <p className="rounded-lg border border-primary/30 bg-signal-soft/40 p-3 text-sm text-muted-foreground">
+                           AccessGrant được tạo tự động bởi issuer khi credential được cấp. Subject không cần nhập hoặc xử lý wrapped document key.
+                         </p>
+                         <p className="text-xs text-muted-foreground">Subject có thể xem trạng thái grant bên dưới. Chỉ grantor gốc mới có quyền revoke theo policy on-chain.</p>
+                       </CardContent>
                     </Card>
 
                     <Card className="border-border/80 bg-secondary/20">
@@ -339,16 +287,25 @@ export default function SubjectGrantsPage() {
                             min={1}
                           />
                         </label>
-                        <label className="block text-sm font-medium">
-                          Link Grant ID
+                         <label className="block text-sm font-medium">
+                           Link Grant ID
                           <Input
                             type="number"
                             value={linkGrantId}
                             onChange={(e) => setLinkGrantId(e.target.value)}
                             className="mt-1"
                             min={0}
-                          />
-                        </label>
+                           />
+                         </label>
+                         <label className="block text-sm font-medium">
+                           Wrapped key for share link (hex)
+                           <Input
+                             value={linkWrappedKeyHex}
+                             onChange={(e) => setLinkWrappedKeyHex(e.target.value)}
+                             className="mt-1 font-mono text-xs"
+                             placeholder="Required for LinkGrant only"
+                           />
+                         </label>
                         <div className="flex flex-wrap gap-2 pt-1">
                           <Button type="button" onClick={handleCreateLink} disabled={actionState !== 'idle'}>
                             {actionState === 'linking' ? 'Creating...' : 'Create Link'}
@@ -369,6 +326,41 @@ export default function SubjectGrantsPage() {
                     </Card>
                   </div>
                 )}
+
+                {selectedCredential && (
+                  <section className="space-y-3 rounded-xl border border-border/80 bg-secondary/20 p-4">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <h2 className="font-semibold">Access grants</h2>
+                        <p className="text-xs text-muted-foreground">Trạng thái hiện tại trên Solana, không phải audit timeline.</p>
+                      </div>
+                      <Button type="button" variant="outline" size="sm" onClick={() => void loadAccessGrants()} disabled={grantState === 'loading'}>
+                        {grantState === 'loading' ? 'Đang tải...' : 'Làm mới'}
+                      </Button>
+                    </div>
+                    {grantState === 'error' && <p className="text-sm text-destructive">Không thể tải quyền truy cập. Hãy thử lại.</p>}
+                    {grantState === 'ready' && accessGrants.length === 0 && <p className="text-sm text-muted-foreground">Credential này chưa có AccessGrant.</p>}
+                    {accessGrants.map((grant) => {
+                      const expired = grant.expiresAt !== null && grant.expiresAt <= BigInt(now)
+                      return (
+                        <div key={grant.address} className="rounded-lg border border-border bg-card p-3 text-sm">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <span className="font-medium">{expired ? 'Expired' : grant.status}</span>
+                            {grant.status === 'Active' && !expired && grant.grantor === connectedWallet?.account.address && (
+                              <span className="text-xs text-muted-foreground">Issuer-managed</span>
+                            )}
+                          </div>
+                          <p className="mt-2 break-all font-mono text-xs">Recipient: {grant.recipient}</p>
+                          <p className="break-all font-mono text-xs">Grantor: {grant.grantor}</p>
+                          <p className="text-xs text-muted-foreground">Key version: {grant.recipientKeyVersion} · Created: {new Date(Number(grant.createdAt) * 1000).toLocaleString()}</p>
+                          {grant.expiresAt !== null && <p className="text-xs text-muted-foreground">Expires: {new Date(Number(grant.expiresAt) * 1000).toLocaleString()}</p>}
+                        </div>
+                      )
+                    })}
+                  </section>
+                )}
+
+                <OperationFeedback state={operation} network={process.env.NEXT_PUBLIC_NETWORK} onRetry={operation.retryable ? () => void loadAccessGrants() : undefined} />
 
                 {actionState === 'error' && actionError && (
                   <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4">{actionError}</div>

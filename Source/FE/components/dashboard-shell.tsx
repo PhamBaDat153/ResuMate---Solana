@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useEffect, useState, createContext, useContext } from 'react'
+import { useEffect, useState, createContext, useContext, useSyncExternalStore } from 'react'
 import { address, type Address } from '@solana/kit'
 import { useClient } from '@solana/react'
 import { useConnect, useConnectedWallet, useDisconnect, useWallets } from '@solana/kit-plugin-wallet/react'
@@ -46,11 +46,11 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<DashboardState>('idle')
   const [error, setError] = useState<string | null>(null)
   const [capabilities, setCapabilities] = useState<DashboardCapabilities>(EMPTY_DASHBOARD_CAPABILITIES)
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
+  const mounted = useSyncExternalStore(
+    () => () => undefined,
+    () => true,
+    () => false,
+  )
 
   useEffect(() => {
     let cancelled = false
