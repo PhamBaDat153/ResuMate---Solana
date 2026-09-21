@@ -30,4 +30,12 @@ pub enum ErrorCode {
     LinkGrantExpired,
     #[msg("The provided secret does not match the grant")]
     InvalidLinkSecret,
+    #[msg("The public key hash must not be empty")]
+    EmptyPublicKeyHash,
+    #[msg("The encryption key version is not the next expected version")]
+    InvalidKeyVersion,
+    #[msg("The access or link grant is not active")]
+    GrantInactive,
+    #[msg("The new encryption public key hash must differ from the current hash")]
+    EncryptionKeyUnchanged,
 }

@@ -106,4 +106,28 @@ pub mod resume {
     pub fn revoke_link_grant(ctx: Context<RevokeLinkGrant>, _link_grant_id: u64) -> Result<()> {
         handle_revoke_link_grant(ctx)
     }
+
+    pub fn consume_link_grant(
+        ctx: Context<ConsumeLinkGrant>,
+        link_grant_id: u64,
+        secret: [u8; 32],
+    ) -> Result<()> {
+        handle_consume_link_grant(ctx, link_grant_id, secret)
+    }
+
+    pub fn register_encryption_key(
+        ctx: Context<RegisterEncryptionKey>,
+        public_key_hash: [u8; 32],
+        key_version: u32,
+    ) -> Result<()> {
+        handle_register_encryption_key(ctx, public_key_hash, key_version)
+    }
+
+    pub fn rotate_encryption_key(
+        ctx: Context<RotateEncryptionKey>,
+        public_key_hash: [u8; 32],
+        key_version: u32,
+    ) -> Result<()> {
+        handle_rotate_encryption_key(ctx, public_key_hash, key_version)
+    }
 }

@@ -4,8 +4,18 @@ import { useState } from 'react'
 import { address, type Address } from '@solana/kit'
 import { useClient } from '@solana/react'
 import { useConnectedWallet } from '@solana/kit-plugin-wallet/react'
+import { toast } from 'sonner'
 import type { SolanaWalletClient } from '@/components/solana-provider'
-import { verifyEncryptedCredential, downloadVerifiedDocument, type VerificationResult } from '@/lib/credentialVerification'
+import {
+  verifyEncryptedCredential,
+  downloadVerifiedDocument,
+  type VerificationResult,
+} from '@/lib/credentialVerification'
+import { PageHeader } from '@/components/page-header'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 
 export default function VerifyPage() {
   const client = useClient<SolanaWalletClient>()
@@ -22,49 +32,142 @@ export default function VerifyPage() {
     setState('verifying')
     setError(null)
     setResult(null)
+    toast.message('Đang xác minh chứng nhận…')
     try {
       const verifierAddr = address(connectedWallet.account.address) as Address
-      const result = await verifyEncryptedCredential(client, address(credentialAddress.trim()) as Address, verifierAddr, passphrase, subjectAcceptedRequired)
-      setResult(result)
+      const next = await verifyEncryptedCredential(
+        client,
+        address(credentialAddress.trim()) as Address,
+        verifierAddr,
+        passphrase,
+        subjectAcceptedRequired,
+      )
+      setResult(next)
       setState('done')
+      if (next.verified) toast.success('Chứng nhận hợp lệ')
+      else toast.error('Không thể xác minh', { description: next.reason ?? undefined })
     } catch (value) {
-      setError(value instanceof Error ? value.message : 'Verification failed.')
+      const message = value instanceof Error ? value.message : 'Verification failed.'
+      setError(message)
       setState('error')
+      toast.error('Xác minh thất bại', { description: message })
     }
   }
 
   return (
-    <main className="min-h-screen bg-background">
-      <div className="mx-auto max-w-4xl">
-        <header className="mb-8">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted">Công cụ xác minh</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight">Xác minh chứng nhận</h1>
-          <p className="mt-3 max-w-2xl leading-7 text-muted">Kiểm tra trạng thái, thời hạn và tính toàn vẹn của chứng nhận trước khi giải mã tài liệu.</p>
-        </header>
-        <section className="rounded-2xl border border-border-low bg-card p-6">
+    <div className="mx-auto w-full max-w-4xl">
+      <PageHeader
+        eyebrow="Công cụ xác minh"
+        title="Xác minh chứng nhận"
+        description="Kiểm tra trạng thái, thời hạn và tính toàn vẹn của chứng nhận trước khi giải mã tài liệu."
+      />
+
+      <Card className="border-border/70 bg-card/80 shadow-panel animate-fade-up">
+        <CardHeader>
+          <CardTitle className="font-display text-lg">Thông tin xác minh</CardTitle>
+          <CardDescription>
+            Quyền truy cập tài liệu được lấy tự động từ access grant của ví đang kết nối.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
           {!connectedWallet && (
-            <div className="mb-4 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
               <p className="text-sm">Kết nối ví để tự động lấy quyền truy cập tài liệu từ access grant.</p>
             </div>
           )}
-          {connectedWallet && <p className="mb-4 text-sm text-muted">Đang xác minh bằng ví {connectedWallet.account.address.slice(0, 6)}...{connectedWallet.account.address.slice(-4)}.</p>}
-          <label className="block text-sm font-medium">Mã chứng nhận<input value={credentialAddress} onChange={(event) => setCredentialAddress(event.target.value)} className="mt-2 w-full rounded-lg border border-border-low bg-card px-3 py-2 font-mono text-xs" placeholder="Địa chỉ chứng nhận" /></label>
-          <label className="mt-4 block text-sm font-medium">Mật khẩu bảo mật tài liệu<input type="password" value={passphrase} onChange={(event) => setPassphrase(event.target.value)} className="mt-2 w-full rounded-lg border border-border-low bg-card px-3 py-2" /></label>
-          <label className="mt-4 flex items-center gap-2 text-sm"><input type="checkbox" checked={subjectAcceptedRequired} onChange={(event) => setSubjectAcceptedRequired(event.target.checked)} /> Chỉ chấp nhận chứng nhận đã được người nhận xác nhận</label>
-          <button type="button" onClick={() => void verify()} disabled={state === 'verifying' || !credentialAddress || !passphrase || !connectedWallet} className="mt-5 rounded-lg bg-foreground px-4 py-2 font-medium text-background disabled:opacity-50">{state === 'verifying' ? 'Đang xác minh...' : 'Xác minh chứng nhận'}</button>
-          {error && <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4" role="alert">{error}</div>}
-          {result && <div className={`mt-4 rounded-xl border p-4 ${result.verified ? 'border-green-500/30 bg-green-500/10' : 'border-red-500/30 bg-red-500/10'}`}>
-             <p className="font-semibold">{result.verified ? 'Chứng nhận hợp lệ' : 'Không thể xác minh chứng nhận'}</p>
-            {result.reason && <p className="mt-2 text-sm">{result.reason}</p>}
-            <p className="mt-2 break-all font-mono text-xs">Issuer: {result.credential.issuer}</p>
-            <p className="break-all font-mono text-xs">Subject: {result.credential.subject}</p>
-            {result.verified && result.document && <>
-               <button type="button" onClick={() => downloadVerifiedDocument(result.document!, result.package?.originalFileName || 'credential-document', result.package?.mimeType || 'application/octet-stream')} className="mt-4 rounded-lg border border-border-low px-3 py-2 text-sm">Tải tài liệu đã xác minh</button>
-               <p className="mt-3 text-xs text-muted">Sau khi tải xuống, bản sao tài liệu nằm trên thiết bị của bạn và không thể bị thu hồi từ xa. Hãy giữ file an toàn.</p>
-            </>}
-          </div>}
-        </section>
-      </div>
-    </main>
+          {connectedWallet && (
+            <p className="text-sm text-muted-foreground">
+              Đang xác minh bằng ví {connectedWallet.account.address.slice(0, 6)}...
+              {connectedWallet.account.address.slice(-4)}.
+            </p>
+          )}
+
+          <label className="block text-sm font-medium">
+            Mã chứng nhận
+            <Input
+              value={credentialAddress}
+              onChange={(event) => setCredentialAddress(event.target.value)}
+              className="mt-2 font-mono text-xs"
+              placeholder="Địa chỉ chứng nhận"
+            />
+          </label>
+          <label className="block text-sm font-medium">
+            Mật khẩu bảo mật tài liệu
+            <Input
+              type="password"
+              value={passphrase}
+              onChange={(event) => setPassphrase(event.target.value)}
+              className="mt-2"
+            />
+          </label>
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={subjectAcceptedRequired}
+              onChange={(event) => setSubjectAcceptedRequired(event.target.checked)}
+            />
+            Chỉ chấp nhận chứng nhận đã được người nhận xác nhận
+          </label>
+          <Button
+            type="button"
+            onClick={() => void verify()}
+            disabled={state === 'verifying' || !credentialAddress || !passphrase || !connectedWallet}
+          >
+            {state === 'verifying' ? 'Đang xác minh...' : 'Xác minh chứng nhận'}
+          </Button>
+
+          {error && (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4" role="alert">
+              {error}
+            </div>
+          )}
+
+          {result && (
+            <div
+              className={`rounded-xl border p-4 ${
+                result.verified
+                  ? 'border-primary/30 bg-signal-soft/40'
+                  : 'border-destructive/30 bg-destructive/10'
+              }`}
+            >
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-semibold">
+                  {result.verified ? 'Chứng nhận hợp lệ' : 'Không thể xác minh chứng nhận'}
+                </p>
+                <Badge variant={result.verified ? 'default' : 'destructive'}>
+                  {result.verified ? 'Verified' : 'Failed'}
+                </Badge>
+              </div>
+              {result.reason && <p className="mt-2 text-sm">{result.reason}</p>}
+              <p className="mt-2 break-all font-mono text-xs">Issuer: {result.credential.issuer}</p>
+              <p className="break-all font-mono text-xs">Subject: {result.credential.subject}</p>
+              {result.verified && result.document && (
+                <>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-4"
+                    onClick={() =>
+                      downloadVerifiedDocument(
+                        result.document!,
+                        result.package?.originalFileName || 'credential-document',
+                        result.package?.mimeType || 'application/octet-stream',
+                      )
+                    }
+                  >
+                    Tải tài liệu đã xác minh
+                  </Button>
+                  <p className="mt-3 text-xs text-muted-foreground">
+                    Sau khi tải xuống, bản sao tài liệu nằm trên thiết bị của bạn và không thể bị thu hồi từ xa. Hãy giữ
+                    file an toàn.
+                  </p>
+                </>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   )
 }

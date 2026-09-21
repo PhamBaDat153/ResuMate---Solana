@@ -1,9 +1,10 @@
 use anchor_lang::prelude::*;
+use solana_sha256_hasher::hash;
 
 use crate::{
     constants::{ACCESS_GRANT_SEED, CREDENTIAL_SEED, LINK_GRANT_SEED, MAX_WRAPPED_KEY_LEN},
     error::ErrorCode,
-    state::{AccessGrant, Credential, GrantStatus, LinkGrant},
+    state::{AccessGrant, Credential, CredentialStatus, GrantStatus, LinkGrant},
 };
 
 #[derive(Accounts)]
@@ -141,9 +142,10 @@ pub fn handle_create_link_grant(
     max_uses: u32,
 ) -> Result<()> {
     require!(
-        ctx.accounts.credential.status == crate::state::CredentialStatus::Active,
+        ctx.accounts.credential.status == CredentialStatus::Active,
         ErrorCode::CredentialRevoked
     );
+    require!(secret_hash != [0; 32], ErrorCode::EmptyHash);
     require!(
         wrapped_document_key.len() <= MAX_WRAPPED_KEY_LEN,
         ErrorCode::WrappedKeyTooLong
@@ -152,6 +154,7 @@ pub fn handle_create_link_grant(
         expires_at > Clock::get()?.unix_timestamp,
         ErrorCode::InvalidExpiry
     );
+    // max_uses == 0 means unlimited uses.
 
     let grant = &mut ctx.accounts.link_grant;
     grant.credential = ctx.accounts.credential.key();
@@ -207,6 +210,65 @@ pub fn handle_revoke_link_grant(ctx: Context<RevokeLinkGrant>) -> Result<()> {
     Ok(())
 }
 
+#[derive(Accounts)]
+#[instruction(link_grant_id: u64)]
+pub struct ConsumeLinkGrant<'info> {
+    /// Fee payer for the consume transaction. Possession of the secret authorizes access.
+    pub consumer: Signer<'info>,
+    #[account(
+        seeds = [CREDENTIAL_SEED, credential.subject.as_ref(), &credential.credential_id.to_le_bytes()],
+        bump = credential.bump,
+        constraint = credential.status == CredentialStatus::Active @ ErrorCode::CredentialRevoked
+    )]
+    pub credential: Account<'info, Credential>,
+    #[account(
+        mut,
+        has_one = credential @ ErrorCode::Unauthorized,
+        seeds = [LINK_GRANT_SEED, credential.key().as_ref(), &link_grant_id.to_le_bytes()],
+        bump = link_grant.bump
+    )]
+    pub link_grant: Account<'info, LinkGrant>,
+}
+
+pub fn handle_consume_link_grant(
+    ctx: Context<ConsumeLinkGrant>,
+    _link_grant_id: u64,
+    secret: [u8; 32],
+) -> Result<()> {
+    let grant = &mut ctx.accounts.link_grant;
+    require!(grant.status == GrantStatus::Active, ErrorCode::GrantInactive);
+
+    let now = Clock::get()?.unix_timestamp;
+    require!(now < grant.expires_at, ErrorCode::LinkGrantExpired);
+
+    let computed = hash(&secret).to_bytes();
+    require!(computed == grant.secret_hash, ErrorCode::InvalidLinkSecret);
+
+    if grant.max_uses > 0 {
+        require!(
+            grant.use_count < grant.max_uses,
+            ErrorCode::LinkGrantExhausted
+        );
+    }
+
+    grant.use_count = grant
+        .use_count
+        .checked_add(1)
+        .ok_or(ErrorCode::CounterOverflow)?;
+
+    if grant.max_uses > 0 && grant.use_count >= grant.max_uses {
+        grant.status = GrantStatus::Revoked;
+    }
+
+    emit!(LinkGrantConsumed {
+        grant: grant.key(),
+        credential: grant.credential,
+        consumer: ctx.accounts.consumer.key(),
+        use_count: grant.use_count,
+    });
+    Ok(())
+}
+
 #[event]
 pub struct AccessGrantCreated {
     pub grant: Pubkey,
@@ -236,4 +298,12 @@ pub struct LinkGrantRevoked {
     pub grant: Pubkey,
     pub credential: Pubkey,
     pub grantor: Pubkey,
+}
+
+#[event]
+pub struct LinkGrantConsumed {
+    pub grant: Pubkey,
+    pub credential: Pubkey,
+    pub consumer: Pubkey,
+    pub use_count: u32,
 }

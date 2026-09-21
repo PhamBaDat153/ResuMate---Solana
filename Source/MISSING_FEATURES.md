@@ -40,25 +40,28 @@ Các chức năng này là blocker chính. Nếu chưa hoàn thành, issuer có 
 
 | Status | Feature | Current gap | Related code |
 |---|---|---|---|
-| Partial | Public key persistence | Backend public-key endpoint chỉ validate rồi trả lại dữ liệu; chưa lưu persistence thật. | `BE/.../CredentialAccessController.java` |
-| Partial | Subject public-key registration | Subject tạo key local nhưng chưa đăng ký public key ổn định với backend hoặc metadata service. | `FE/app/encryption-setup/page.tsx` |
-| Partial | Verifier public-key registration | Có helper đăng ký nhưng chưa có UI setup riêng và backend storage thật. | `FE/lib/verifierIdentity.ts` |
-| Partial | Key rotation | Có key version trong type, nhưng chưa có rotation flow, grant migration hoặc version lookup hoàn chỉnh. | `FE/lib/encryptionIdentity.ts`, `FE/lib/verifierIdentity.ts` |
-| Partial | Backup/recovery | Private key được mã hóa bằng passphrase trong localStorage, nhưng chưa có export/import backup hoàn chỉnh. | `FE/lib/encryptionIdentity.ts`, `FE/app/encryption-setup/page.tsx` |
+| Implemented | Public key persistence | Backend registry lưu public key theo wallet + version (in-memory service). | `BE/.../EncryptionPublicKeyRegistry.java`, `CredentialAccessController.java` |
+| Partial | Subject public-key registration | Local identity + BE register sẵn; UI setup còn có thể mở rộng. | `FE/app/encryption-setup/page.tsx`, `FE/lib/encryptionIdentity.ts` |
+| Partial | Verifier public-key registration | Helper đăng ký/lookup đã có; UI verifier setup riêng vẫn tối giản. | `FE/lib/verifierIdentity.ts` |
+| Implemented | Key rotation | Rotate local + on-chain `rotate_encryption_key` + archive previous key. | `FE/lib/encryptionIdentity.ts`, `resume/.../encryption.rs` |
+| Implemented | Backup/recovery | Export/import backup blob với PBKDF2 salt ngẫu nhiên. | `FE/lib/encryptionIdentity.ts` |
 | Implemented | Tách signing key và encryption key | Encryption identity riêng với Solana wallet signing key đã được tạo. | `FE/lib/credentialCrypto.ts`, `FE/lib/encryptionIdentity.ts` |
-| Missing | Secure platform key storage | Chưa có WebAuthn/IndexedDB/OS keystore hoặc cơ chế bảo vệ key ngoài localStorage. | `FE/lib/encryptionIdentity.ts` |
+| Implemented | On-chain encryption profile | PDA `["enc-profile", wallet]` lưu `key_version` + `public_key_hash`. | `resume/.../state.rs`, `encryption.rs` |
+| Missing | Secure platform key storage | Chưa có WebAuthn/IndexedDB/OS keystore ngoài localStorage + backup. | `FE/lib/encryptionIdentity.ts` |
 
 ## P1 - Verification Security
 
 | Status | Feature | Current gap | Related code |
 |---|---|---|---|
-| Partial | On-chain status verification | Đã kiểm tra `Active`, `Revoked` và expiry của credential. | `FE/lib/credentialVerification.ts` |
-| Missing | Issuer PDA policy verification | Chưa fetch issuer account để kiểm tra issuer tồn tại, `is_active` hoặc policy verifier. | `FE/lib/credentialVerification.ts` |
+| Implemented | On-chain status verification | Kiểm tra `Active`, `Revoked` và expiry của credential. | `FE/lib/credentialVerification.ts` |
+| Implemented | Issuer PDA policy verification | Fetch issuer PDA, enforce tồn tại và `is_active` (default). | `FE/lib/credentialVerification.ts` |
 | Implemented | Subject acceptance policy | `/verify` có tùy chọn yêu cầu subject acceptance. | `FE/app/verify/page.tsx` |
 | Partial | Document hash verification | Có recompute SHA-256 sau decrypt, nhưng chỉ hoạt động khi access key và package hợp lệ. | `FE/lib/credentialVerification.ts` |
 | Partial | Claims hash verification | Logic có sẵn nhưng package hiện chưa luôn chứa claims envelope đầy đủ. | `FE/lib/credentialVerification.ts` |
 | Implemented | Download disclosure | UI cảnh báo rằng plaintext đã tải xuống không thể revoke từ xa. | `FE/app/verify/page.tsx` |
-| Partial | Key-loss recovery | Có cảnh báo passphrase nhưng chưa có backup import/recovery workflow. | `FE/app/encryption-setup/page.tsx` |
+| Implemented | Access grant policy checks | Decode/fetch AccessGrant + kiểm tra Active/expiry/recipient trước unwrap. | `FE/lib/grantProgram.ts`, `credentialVerification.ts` |
+| Implemented | Link grant consume | `consume_link_grant` enforce secret hash, expiry, `max_uses`, auto-revoke. | `resume/.../grant.rs` |
+| Partial | Key-loss recovery | Backup/import đã có; UX recovery trên `/encryption-setup` có thể mở rộng. | `FE/app/encryption-setup/page.tsx` |
 
 ## P1 - Backend And Storage
 

@@ -29,6 +29,10 @@ import { uploadEncryptedCredentialPackage } from '@/lib/credentialPackageApi'
 import { lookupVerifierIdentity } from '@/lib/verifierIdentity'
 import { createAccessGrant } from '@/lib/grantProgram'
 import { deriveCredentialAddress } from '@/lib/credentialProgram'
+import { PageHeader } from '@/components/page-header'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
+import { toast } from 'sonner'
 
 const ISSUER_TYPE_LABELS: Record<number, string> = {
   1: 'University',
@@ -249,9 +253,12 @@ export default function IssuerPage() {
       setPreparedAesKey(null)
       setSubjectProfile(null)
       setSubjectKey('')
+      toast.success('Credential đã cấp on-chain')
     } catch (e) {
       setIssueState('error')
-      setIssueError(getCredentialError(e))
+      const message = getCredentialError(e)
+      setIssueError(message)
+      toast.error('Cấp chứng nhận thất bại', { description: message })
     }
   }
 
@@ -274,31 +281,33 @@ export default function IssuerPage() {
   const revokedCount = credentials.filter((c) => c.status === 'Revoked').length
 
   return (
-    <main className="min-h-screen bg-background">
-      <div className="mx-auto max-w-5xl">
-        <header className="mb-8">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted">Tổ chức của tôi</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight">Cổng cấp chứng nhận</h1>
-          <p className="mt-3 max-w-2xl leading-7 text-muted">Cấp và quản lý các chứng nhận được mã hóa cho người nhận.</p>
-        </header>
+    <div className="mx-auto w-full max-w-5xl">
+      <PageHeader
+        eyebrow="Tổ chức của tôi"
+        title="Cổng cấp chứng nhận"
+        description="Cấp và quản lý các chứng nhận được mã hóa cho người nhận."
+      />
 
-        {!connectedWallet ? (
-          <section className="rounded-2xl border border-border-low bg-card p-6">
-            <p className="text-muted">Kết nối ví để truy cập cổng cấp chứng nhận.</p>
+      {!connectedWallet ? (
+        <Card className="border-border/70 bg-card/80 shadow-panel animate-fade-up">
+          <CardContent className="p-6">
+            <p className="text-muted-foreground">Kết nối ví để truy cập cổng cấp chứng nhận.</p>
             {wallets.length > 0 ? wallets.map((w) => (
-              <button key={w.name} type="button" onClick={() => connect.dispatch(w)} disabled={connect.isRunning} className="mt-4 w-fit rounded-lg bg-foreground px-4 py-2 font-medium text-background disabled:opacity-50">
+              <Button key={w.name} type="button" onClick={() => connect.dispatch(w)} disabled={connect.isRunning} className="mt-4">
                 {connect.isRunning ? 'Đang kết nối...' : `Kết nối ${w.name}`}
-              </button>
-            )) : <p className="mt-3 text-sm text-muted">Không tìm thấy ví tương thích.</p>}
-          </section>
-        ) : (
-          <section className="rounded-2xl border border-border-low bg-card p-6 shadow-[0_20px_80px_-50px_rgba(0,0,0,0.35)]">
+              </Button>
+            )) : <p className="mt-3 text-sm text-muted-foreground">Không tìm thấy ví tương thích.</p>}
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-border/70 bg-card/80 shadow-panel animate-fade-up">
+          <CardContent className="space-y-6 p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-sm text-muted">Ví đang kết nối</p>
+                <p className="text-sm text-muted-foreground">Ví đang kết nối</p>
                 <p className="mt-1 break-all font-mono text-xs">{connectedWallet.account.address}</p>
               </div>
-              <button type="button" onClick={() => disconnect.dispatch()} className="rounded-lg border border-border-low px-3 py-2 text-sm">Ngắt kết nối</button>
+              <Button type="button" variant="outline" size="sm" onClick={() => disconnect.dispatch()}>Ngắt kết nối</Button>
             </div>
 
             {pageState === 'loading' && <p className="mt-4 text-muted">Đang tải thông tin đơn vị cấp...</p>}
@@ -492,9 +501,9 @@ export default function IssuerPage() {
                 </div>
               </>
             )}
-          </section>
-        )}
-      </div>
-    </main>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   )
 }

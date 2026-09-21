@@ -1,22 +1,28 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono } from 'next/font/google'
+import { JetBrains_Mono, Outfit, Syne } from 'next/font/google'
 import { DashboardShell } from '@/components/dashboard-shell'
 import { SolanaProvider } from '@/components/solana-provider'
+import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
 
-const geistSans = Geist({
-  variable: '--font-geist-sans',
+const fontSans = Outfit({
+  variable: '--font-sans',
   subsets: ['latin'],
 })
 
-const geistMono = Geist_Mono({
-  variable: '--font-geist-mono',
+const fontDisplay = Syne({
+  variable: '--font-display',
+  subsets: ['latin'],
+})
+
+const fontMono = JetBrains_Mono({
+  variable: '--font-mono',
   subsets: ['latin'],
 })
 
 export const metadata: Metadata = {
-  title: 'ResuMate - AI Job Matching',
-  description: 'Upload your CV and discover suitable jobs validated by AI.',
+  title: 'ResuMate — On-chain career identity',
+  description: 'Quản lý hồ sơ, CV và chứng nhận trên Solana với mã hóa đầu cuối.',
 }
 
 export default function RootLayout({
@@ -25,10 +31,11 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="vi">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="vi" className="dark">
+      <body className={`${fontSans.variable} ${fontDisplay.variable} ${fontMono.variable} antialiased`}>
         <SolanaProvider>
           <DashboardShell>{children}</DashboardShell>
+          <Toaster theme="dark" richColors closeButton position="top-right" />
         </SolanaProvider>
       </body>
     </html>

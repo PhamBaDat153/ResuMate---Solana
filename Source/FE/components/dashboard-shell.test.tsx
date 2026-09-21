@@ -35,10 +35,11 @@ describe('DashboardShell', () => {
     readError.value = null
   })
 
-  it('requires a wallet before showing dashboard navigation', () => {
+  it('requires a wallet before showing dashboard navigation', async () => {
     render(<DashboardShell><p>Dashboard content</p></DashboardShell>)
 
-    expect(screen.getByRole('heading', { name: 'Bắt đầu với ResuMate' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Kết nối để vào không gian của bạn' })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /Kết nối Test Wallet/i })).toBeInTheDocument()
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument()
   })
 

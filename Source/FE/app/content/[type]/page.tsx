@@ -1,17 +1,21 @@
 import { CatsComponent } from '@/components/cats-component'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
 
 const CONTENT_CONFIG = {
   cheap: {
     price: '0.01',
     title: 'Budget Content',
-    message: 'This is what you get when you pay for cheap content: angry, starving, and sad cats. 😿',
+    message:
+      'This is what you get when you pay for cheap content: angry, starving, and sad cats.',
   },
   expensive: {
     price: '0.25',
     title: 'Premium Content',
-    message: 'You deserve the best! Here are some happy, wealthy cats living their best lives. 🐱💰✨',
+    message: 'You deserve the best! Here are some happy, wealthy cats living their best lives.',
   },
 } as const
 
@@ -28,27 +32,30 @@ export default async function ContentPage({ params }: { params: Promise<{ type: 
   const config = CONTENT_CONFIG[contentType]
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#14F195] to-[#9945FF] font-sans">
-      <main className="flex w-full max-w-2xl flex-col items-center justify-center p-8">
-        <div className="bg-white rounded-2xl shadow-2xl p-12 text-center">
-          <div className="bg-gradient-to-br from-purple-50 to-green-50 rounded-xl p-8 mb-8 border-2 border-purple-200">
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">🔓 Exclusive Content Unlocked</h2>
-            <p className="text-gray-700 leading-relaxed mb-6 font-medium">
-              {config.message} You paid {config.price}!
-            </p>
+    <div className="mx-auto flex w-full max-w-2xl justify-center py-6">
+      <Card className="w-full border-border/70 bg-card/90 shadow-panel animate-fade-up">
+        <CardHeader className="text-center">
+          <div className="mb-2 flex justify-center">
+            <Badge variant="outline" className="font-mono">
+              x402 · {config.price} SOL
+            </Badge>
+          </div>
+          <CardTitle className="font-display text-2xl">Exclusive content unlocked</CardTitle>
+          <CardDescription className="text-[15px] leading-7">
+            {config.message} You paid {config.price}.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="rounded-xl border border-border bg-secondary/30 p-6">
             <CatsComponent contentType={contentType} />
           </div>
-
-          <div className="flex gap-4 justify-center">
-            <Link
-              href="/"
-              className="px-6 py-3 bg-neutral-800 text-white rounded-lg font-semibold hover:opacity-90 transition-opacity"
-            >
-              Back to Home
-            </Link>
+          <div className="flex justify-center">
+            <Button asChild>
+              <Link href="/">Back to Home</Link>
+            </Button>
           </div>
-        </div>
-      </main>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { address, type Address } from '@solana/kit'
 import { useClient } from '@solana/react'
 import { useConnect, useConnectedWallet, useDisconnect, useWallets } from '@solana/kit-plugin-wallet/react'
+import { toast } from 'sonner'
 import type { SolanaWalletClient } from '@/components/solana-provider'
 import { fetchProfile } from '@/lib/profileProgram'
 import { fetchProfileCredentials, type CredentialAccount } from '@/lib/credentialProgram'
@@ -13,9 +14,17 @@ import {
   createLinkGrant,
   revokeLinkGrant,
 } from '@/lib/grantProgram'
+import { PageHeader } from '@/components/page-header'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 
 type PageState = 'idle' | 'loading' | 'ready' | 'error'
 type GrantAction = 'idle' | 'granting' | 'revoking' | 'linking' | 'error'
+
+const selectClass =
+  'mt-2 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
 
 export default function SubjectGrantsPage() {
   const client = useClient<SolanaWalletClient>()
@@ -82,9 +91,12 @@ export default function SubjectGrantsPage() {
       if (wrappedKey.length === 0 || wrappedKey.length > 512) throw new Error('Enter a valid wrapped document key (1-512 bytes).')
       await createAccessGrant(client, grantor, credentialAddr, recipient, gid, 1, wrappedKey, null)
       setActionState('idle')
+      toast.success('Đã cấp quyền truy cập')
     } catch (e) {
+      const message = e instanceof Error ? e.message : 'Failed to grant access.'
       setActionState('error')
-      setActionError(e instanceof Error ? e.message : 'Failed to grant access.')
+      setActionError(message)
+      toast.error('Cấp quyền thất bại', { description: message })
     }
   }
 
@@ -99,9 +111,12 @@ export default function SubjectGrantsPage() {
       const gid = BigInt(grantId)
       await revokeAccessGrant(client, grantor, credentialAddr, recipient, gid)
       setActionState('idle')
+      toast.success('Đã thu hồi quyền truy cập')
     } catch (e) {
+      const message = e instanceof Error ? e.message : 'Failed to revoke access.'
       setActionState('error')
-      setActionError(e instanceof Error ? e.message : 'Failed to revoke access.')
+      setActionError(message)
+      toast.error('Thu hồi thất bại', { description: message })
     }
   }
 
@@ -121,12 +136,20 @@ export default function SubjectGrantsPage() {
       const wrappedKey = parseHex(wrappedKeyHex)
       if (wrappedKey.length === 0 || wrappedKey.length > 512) throw new Error('Enter a valid wrapped document key (1-512 bytes).')
       await createLinkGrant(client, grantor, credentialAddr, lgid, secretHash, wrappedKey, expiresAt, maxUses)
-      const secretHex = Array.from(secretBytes).map(b => b.toString(16).padStart(2, '0')).join('')
+      const secretHex = Array.from(secretBytes).map((b) => b.toString(16).padStart(2, '0')).join('')
       setActionState('idle')
-      alert(`Link created. Share this secret with the verifier:\n${secretHex}\n\nWarning: possession of this link grants decryption access until revoked or expired.`)
+      toast.success('Link đã tạo', {
+        description: `Secret: ${secretHex.slice(0, 16)}… — copy full secret from console or share carefully.`,
+        duration: 12000,
+      })
+      // Keep full secret visible via toast + console for operator workflow
+      console.info('ResuMate link grant secret:', secretHex)
+      toast.message('Link secret (full)', { description: secretHex, duration: 20000 })
     } catch (e) {
+      const message = e instanceof Error ? e.message : 'Failed to create link.'
       setActionState('error')
-      setActionError(e instanceof Error ? e.message : 'Failed to create link.')
+      setActionError(message)
+      toast.error('Tạo link thất bại', { description: message })
     }
   }
 
@@ -140,128 +163,222 @@ export default function SubjectGrantsPage() {
       const lgid = BigInt(linkGrantId)
       await revokeLinkGrant(client, grantor, credentialAddr, lgid)
       setActionState('idle')
+      toast.success('Đã thu hồi link')
     } catch (e) {
+      const message = e instanceof Error ? e.message : 'Failed to revoke link.'
       setActionState('error')
-      setActionError(e instanceof Error ? e.message : 'Failed to revoke link.')
+      setActionError(message)
+      toast.error('Thu hồi link thất bại', { description: message })
     }
   }
 
-  const activeCred = credentials.find(c => c.address === selectedCredential)
+  const activeCred = credentials.find((c) => c.address === selectedCredential)
 
   return (
-    <main className="min-h-screen bg-background">
-      <div className="mx-auto max-w-5xl">
-        <header className="mb-8">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted">Chứng nhận của tôi</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight">Quyền truy cập tài liệu</h1>
-          <p className="mt-3 max-w-2xl leading-7 text-muted">Quản lý ai có thể xem tài liệu chứng nhận của bạn. Bạn có thể cấp, thu hồi hoặc tạo liên kết chia sẻ có thời hạn.</p>
-        </header>
+    <div className="mx-auto w-full max-w-5xl">
+      <PageHeader
+        eyebrow="Chứng nhận của tôi"
+        title="Quyền truy cập tài liệu"
+        description="Quản lý ai có thể xem tài liệu chứng nhận của bạn. Bạn có thể cấp, thu hồi hoặc tạo liên kết chia sẻ có thời hạn."
+      />
 
-        {!connectedWallet ? (
-          <section className="rounded-2xl border border-border-low bg-card p-6">
-            <p className="text-muted">Kết nối ví để quản lý quyền truy cập tài liệu.</p>
-            {wallets.length > 0 && wallets.map(w => (
-              <button key={w.name} type="button" onClick={() => connect.dispatch(w)} disabled={connect.isRunning} className="mt-4 w-fit rounded-lg bg-foreground px-4 py-2 font-medium text-background disabled:opacity-50">
-                {connect.isRunning ? 'Đang kết nối...' : `Kết nối ${w.name}`}
-              </button>
-            ))}
-          </section>
-        ) : (
-          <section className="rounded-2xl border border-border-low bg-card p-6 shadow-[0_20px_80px_-50px_rgba(0,0,0,0.35)]">
+      {!connectedWallet ? (
+        <Card className="border-border/70 bg-card/80 shadow-panel animate-fade-up">
+          <CardContent className="p-6">
+            <p className="text-muted-foreground">Kết nối ví để quản lý quyền truy cập tài liệu.</p>
+            {wallets.length > 0 &&
+              wallets.map((w) => (
+                <Button
+                  key={w.name}
+                  type="button"
+                  className="mt-4"
+                  onClick={() => connect.dispatch(w)}
+                  disabled={connect.isRunning}
+                >
+                  {connect.isRunning ? 'Đang kết nối...' : `Kết nối ${w.name}`}
+                </Button>
+              ))}
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-border/70 bg-card/80 shadow-panel animate-fade-up">
+          <CardContent className="space-y-6 p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-sm text-muted">Ví đang kết nối</p>
+                <p className="text-sm text-muted-foreground">Ví đang kết nối</p>
                 <p className="mt-1 break-all font-mono text-xs">{connectedWallet.account.address}</p>
               </div>
-                <button type="button" onClick={() => disconnect.dispatch()} className="rounded-lg border border-border-low px-3 py-2 text-sm">Ngắt kết nối</button>
+              <Button type="button" variant="outline" size="sm" onClick={() => disconnect.dispatch()}>
+                Ngắt kết nối
+              </Button>
             </div>
 
-            {pageState === 'loading' && <p className="mt-4 text-sm text-muted">Đang tải chứng nhận...</p>}
-            {pageState === 'error' && <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4">{pageError}</div>}
+            {pageState === 'loading' && (
+              <p className="text-sm text-muted-foreground">Đang tải chứng nhận...</p>
+            )}
+            {pageState === 'error' && (
+              <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4">{pageError}</div>
+            )}
 
             {pageState === 'ready' && (
               <>
-                <label className="mt-6 block text-sm font-medium">
+                <label className="block text-sm font-medium">
                   Select credential
-                  <select value={selectedCredential} onChange={e => setSelectedCredential(e.target.value)} className="mt-2 w-full rounded-lg border border-border-low bg-card px-3 py-2">
+                  <select
+                    value={selectedCredential}
+                    onChange={(e) => setSelectedCredential(e.target.value)}
+                    className={selectClass}
+                  >
                     <option value="">-- Select --</option>
-                    {credentials.map(c => (
-                      <option key={c.address} value={c.address}>#{c.credentialId.toString()} - {c.status} - Issuer: {c.issuer.slice(0, 8)}...</option>
+                    {credentials.map((c) => (
+                      <option key={c.address} value={c.address}>
+                        #{c.credentialId.toString()} - {c.status} - Issuer: {c.issuer.slice(0, 8)}...
+                      </option>
                     ))}
                   </select>
                 </label>
 
                 {activeCred && (
-                  <div className="mt-4 rounded-xl border border-border-low p-4">
-                    <p className="font-medium">Credential #{activeCred.credentialId.toString()}</p>
-                    <p className="mt-1 text-sm text-muted">Status: {activeCred.status} | Accepted: {activeCred.subjectAccepted ? 'Yes' : 'No'}</p>
-                    <p className="mt-1 break-all font-mono text-xs text-muted">Issuer: {activeCred.issuer}</p>
-                    <p className="mt-1 text-xs text-muted">On-chain credential fields are immutable. Grants are separate PDA accounts that do not modify the credential.</p>
+                  <div className="rounded-xl border border-border bg-secondary/30 p-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium">Credential #{activeCred.credentialId.toString()}</p>
+                      <Badge variant="outline">{activeCred.status}</Badge>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Status: {activeCred.status} | Accepted: {activeCred.subjectAccepted ? 'Yes' : 'No'}
+                    </p>
+                    <p className="mt-1 break-all font-mono text-xs text-muted-foreground">
+                      Issuer: {activeCred.issuer}
+                    </p>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      On-chain credential fields are immutable. Grants are separate PDA accounts that do not modify the
+                      credential.
+                    </p>
                   </div>
                 )}
 
                 {selectedCredential && (
-                  <div className="mt-6 grid gap-6 md:grid-cols-2">
-                    <div className="rounded-xl border border-border-low p-4">
-                      <h2 className="text-lg font-semibold">Wallet Verifier Access</h2>
-                      <label className="mt-3 block text-sm font-medium">
-                        Verifier wallet address
-                        <input value={verifierKey} onChange={e => setVerifierKey(e.target.value)} className="mt-1 w-full rounded-lg border border-border-low bg-card px-3 py-2 font-mono text-xs" placeholder="Verifier public key" />
-                      </label>
-                      <label className="mt-3 block text-sm font-medium">
-                        Grant ID
-                        <input type="number" value={grantId} onChange={e => setGrantId(e.target.value)} className="mt-1 w-full rounded-lg border border-border-low bg-card px-3 py-2" min="0" />
-                      </label>
-                      <label className="mt-3 block text-sm font-medium">
-                        Wrapped document key (hex)
-                        <input value={wrappedKeyHex} onChange={e => setWrappedKeyHex(e.target.value)} className="mt-1 w-full rounded-lg border border-border-low bg-card px-3 py-2 font-mono text-xs" placeholder="RSA-OAEP wrapped AES key" />
-                      </label>
-                      <div className="mt-4 flex gap-2">
-                        <button type="button" onClick={handleGrantAccess} disabled={actionState !== 'idle' || !verifierKey.trim()} className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50">
-                          {actionState === 'granting' ? 'Granting...' : 'Grant Access'}
-                        </button>
-                        <button type="button" onClick={handleRevokeAccess} disabled={actionState !== 'idle' || !verifierKey.trim()} className="rounded-lg border border-border-low px-4 py-2 text-sm disabled:opacity-50">
-                          {actionState === 'revoking' ? 'Revoking...' : 'Revoke Access'}
-                        </button>
-                      </div>
-                    </div>
+                  <div className="grid gap-6 md:grid-cols-2">
+                    <Card className="border-border/80 bg-secondary/20">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">Wallet Verifier Access</CardTitle>
+                        <CardDescription>Cấp quyền theo ví verifier.</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <label className="block text-sm font-medium">
+                          Verifier wallet address
+                          <Input
+                            value={verifierKey}
+                            onChange={(e) => setVerifierKey(e.target.value)}
+                            className="mt-1 font-mono text-xs"
+                            placeholder="Verifier public key"
+                          />
+                        </label>
+                        <label className="block text-sm font-medium">
+                          Grant ID
+                          <Input
+                            type="number"
+                            value={grantId}
+                            onChange={(e) => setGrantId(e.target.value)}
+                            className="mt-1"
+                            min={0}
+                          />
+                        </label>
+                        <label className="block text-sm font-medium">
+                          Wrapped document key (hex)
+                          <Input
+                            value={wrappedKeyHex}
+                            onChange={(e) => setWrappedKeyHex(e.target.value)}
+                            className="mt-1 font-mono text-xs"
+                            placeholder="RSA-OAEP wrapped AES key"
+                          />
+                        </label>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          <Button
+                            type="button"
+                            onClick={handleGrantAccess}
+                            disabled={actionState !== 'idle' || !verifierKey.trim()}
+                          >
+                            {actionState === 'granting' ? 'Granting...' : 'Grant Access'}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleRevokeAccess}
+                            disabled={actionState !== 'idle' || !verifierKey.trim()}
+                          >
+                            {actionState === 'revoking' ? 'Revoking...' : 'Revoke Access'}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
 
-                    <div className="rounded-xl border border-border-low p-4">
-                      <h2 className="text-lg font-semibold">Share Link</h2>
-                      <label className="mt-3 block text-sm font-medium">
-                        Expiry (days)
-                        <input type="number" value={linkExpiryDays} onChange={e => setLinkExpiryDays(e.target.value)} className="mt-1 w-full rounded-lg border border-border-low bg-card px-3 py-2" min="1" />
-                      </label>
-                      <label className="mt-3 block text-sm font-medium">
-                        Max uses
-                        <input type="number" value={linkMaxUses} onChange={e => setLinkMaxUses(e.target.value)} className="mt-1 w-full rounded-lg border border-border-low bg-card px-3 py-2" min="1" />
-                      </label>
-                      <label className="mt-3 block text-sm font-medium">
-                        Link Grant ID
-                        <input type="number" value={linkGrantId} onChange={e => setLinkGrantId(e.target.value)} className="mt-1 w-full rounded-lg border border-border-low bg-card px-3 py-2" min="0" />
-                      </label>
-                      <div className="mt-4 flex gap-2">
-                        <button type="button" onClick={handleCreateLink} disabled={actionState !== 'idle'} className="rounded-lg bg-foreground px-4 py-2 text-sm font-medium text-background disabled:opacity-50">
-                          {actionState === 'linking' ? 'Creating...' : 'Create Link'}
-                        </button>
-                        <button type="button" onClick={handleRevokeLink} disabled={actionState !== 'idle'} className="rounded-lg border border-border-low px-4 py-2 text-sm disabled:opacity-50">
-                          {actionState === 'revoking' ? 'Revoking...' : 'Revoke Link'}
-                        </button>
-                      </div>
-                      <p className="mt-3 text-xs text-muted">Link possession grants decryption access. Treat links as sensitive.</p>
-                    </div>
+                    <Card className="border-border/80 bg-secondary/20">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg">Share Link</CardTitle>
+                        <CardDescription>Liên kết chia sẻ có thời hạn.</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        <label className="block text-sm font-medium">
+                          Expiry (days)
+                          <Input
+                            type="number"
+                            value={linkExpiryDays}
+                            onChange={(e) => setLinkExpiryDays(e.target.value)}
+                            className="mt-1"
+                            min={1}
+                          />
+                        </label>
+                        <label className="block text-sm font-medium">
+                          Max uses
+                          <Input
+                            type="number"
+                            value={linkMaxUses}
+                            onChange={(e) => setLinkMaxUses(e.target.value)}
+                            className="mt-1"
+                            min={1}
+                          />
+                        </label>
+                        <label className="block text-sm font-medium">
+                          Link Grant ID
+                          <Input
+                            type="number"
+                            value={linkGrantId}
+                            onChange={(e) => setLinkGrantId(e.target.value)}
+                            className="mt-1"
+                            min={0}
+                          />
+                        </label>
+                        <div className="flex flex-wrap gap-2 pt-1">
+                          <Button type="button" onClick={handleCreateLink} disabled={actionState !== 'idle'}>
+                            {actionState === 'linking' ? 'Creating...' : 'Create Link'}
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={handleRevokeLink}
+                            disabled={actionState !== 'idle'}
+                          >
+                            {actionState === 'revoking' ? 'Revoking...' : 'Revoke Link'}
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground">
+                          Link possession grants decryption access. Treat links as sensitive.
+                        </p>
+                      </CardContent>
+                    </Card>
                   </div>
                 )}
 
                 {actionState === 'error' && actionError && (
-                  <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4">{actionError}</div>
+                  <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4">{actionError}</div>
                 )}
               </>
             )}
-          </section>
-        )}
-      </div>
-    </main>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   )
 }
 

@@ -43,8 +43,9 @@ export function getDashboardNavGroups(capabilities: DashboardCapabilities): Dash
           ? [
               { href: '/profile', label: 'Hồ sơ của tôi' },
               { href: '/subject-grants', label: 'Quyền truy cập tài liệu' },
+              { href: '/encryption-setup', label: 'Bảo mật tài liệu' },
             ]
-          : []),
+          : [{ href: '/encryption-setup', label: 'Bảo mật tài liệu' }]),
       ],
     },
     {

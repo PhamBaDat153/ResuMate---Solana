@@ -9,6 +9,7 @@ import {
   useDisconnect,
   useWallets,
 } from '@solana/kit-plugin-wallet/react'
+import { toast } from 'sonner'
 import type { SolanaWalletClient } from '@/components/solana-provider'
 import {
   createProfile,
@@ -33,6 +34,11 @@ import {
   type ResumeVersionAccount,
 } from '@/lib/resumeVersionProgram'
 import { fetchProfileCredentials, acceptCredential, type CredentialAccount } from '@/lib/credentialProgram'
+import { PageHeader } from '@/components/page-header'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { cn } from '@/lib/utils'
 
 type ProfileState = 'idle' | 'loading' | 'missing' | 'existing' | 'creating' | 'error'
 type ResumeState = 'idle' | 'loading' | 'ready' | 'creating' | 'refreshing' | 'success' | 'conflict' | 'error'
@@ -183,9 +189,12 @@ export default function ProfilePage() {
     try {
       await createProfile(client, address(connectedWallet.account.address) as Address)
       await loadProfile()
+      toast.success('Hồ sơ đã được tạo on-chain')
     } catch (createError) {
       setState('error')
-      setError(getProfileError(createError))
+      const message = getProfileError(createError)
+      setError(message)
+      toast.error('Không thể tạo hồ sơ', { description: message })
     }
   }
 
@@ -203,6 +212,7 @@ export default function ProfilePage() {
       setCreatedResume(result.resume)
       setNextResumeAddress(await deriveResumeAddress(owner, result.profile.resumeCount))
       setResumeState('success')
+      toast.success('Resume đã được xác minh on-chain')
     } catch (createError) {
       const mappedError = getResumeError(createError)
       if (mappedError.conflict) {
@@ -220,6 +230,7 @@ export default function ProfilePage() {
         setResumeState('error')
       }
       setResumeError(mappedError.message)
+      toast.error('Không thể tạo resume', { description: mappedError.message })
     }
   }
 
@@ -266,9 +277,12 @@ export default function ProfilePage() {
         versionAddress,
       })
       setPublishState('prepared')
+      toast.message('Phiên bản đã sẵn sàng để ký')
     } catch (prepareError) {
       setPublishState('error')
-      setPublishError(getPublishError(prepareError))
+      const message = getPublishError(prepareError)
+      setPublishError(message)
+      toast.error('Chuẩn bị phiên bản thất bại', { description: message })
     }
   }
 
@@ -283,96 +297,105 @@ export default function ProfilePage() {
       setOwnedResumes((items) => items.map((item) => item.address === result.resume.address ? result.resume : item))
       setSelectedResume(result.resume)
       setPublishState('success')
+      toast.success('Phiên bản CV đã được công bố on-chain')
     } catch (publishFailure) {
       const message = getPublishError(publishFailure)
       setPublishState(message.includes('stale') || message.includes('thay đổi') ? 'stale' : 'error')
       setPublishError(message)
+      toast.error('Công bố thất bại', { description: message })
     }
   }
 
-  return (
-    <main className="min-h-screen bg-bg1 px-6 py-16 text-foreground">
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
-        <header>
-          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted">ResuMate · Hồ sơ cá nhân</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight">Hồ sơ của tôi</h1>
-          <p className="mt-3 max-w-2xl leading-7 text-muted">
-            Tạo hồ sơ để bắt đầu quản lý CV và chứng nhận. Hồ sơ chỉ lưu định danh ví và các bộ đếm, không lưu thông tin cá nhân.
-          </p>
-        </header>
+  const publishing = ['hashing', 'uploading', 'signing', 'verifying'].includes(publishState)
 
-        <section className="rounded-2xl border border-border-low bg-card p-6 shadow-[0_20px_80px_-50px_rgba(0,0,0,0.35)]">
+  return (
+    <div className="mx-auto w-full max-w-4xl">
+      <PageHeader
+        eyebrow="ResuMate · Hồ sơ cá nhân"
+        title="Hồ sơ của tôi"
+        description="Tạo hồ sơ để bắt đầu quản lý CV và chứng nhận. Hồ sơ chỉ lưu định danh ví và các bộ đếm, không lưu thông tin cá nhân."
+      />
+
+      <Card className="border-border/70 bg-card/80 shadow-panel animate-fade-up">
+        <CardContent className="p-6 sm:p-8">
           {!connectedWallet ? (
             <div className="flex flex-col gap-4">
-              <p className="text-muted">Kết nối ví Solana để kiểm tra hoặc tạo profile.</p>
+              <p className="text-muted-foreground">Kết nối ví Solana để kiểm tra hoặc tạo profile.</p>
               {wallets.length > 0 ? (
                 <div className="flex flex-wrap gap-2">
                   {wallets.map((wallet) => (
-                    <button
+                    <Button
                       key={wallet.name}
                       type="button"
                       onClick={() => connect.dispatch(wallet)}
                       disabled={connect.isRunning}
-                      className="rounded-lg bg-foreground px-4 py-2 font-medium text-background transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {connect.isRunning ? 'Đang kết nối...' : `Kết nối ${wallet.name}`}
-                    </button>
+                    </Button>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted">Không tìm thấy ví tương thích Wallet Standard.</p>
+                <p className="text-sm text-muted-foreground">Không tìm thấy ví tương thích Wallet Standard.</p>
               )}
             </div>
           ) : (
-            <div className="flex flex-col gap-6">
+            <div className="flex flex-col gap-8">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p className="text-sm text-muted">Chủ hồ sơ</p>
-                  <p className="mt-1 break-all font-mono text-sm">{connectedWallet.account.address}</p>
+                  <p className="text-sm text-muted-foreground">Chủ hồ sơ</p>
+                  <p className="mt-1 break-all font-mono text-xs text-foreground/90">{connectedWallet.account.address}</p>
                 </div>
-                <button
+                <Button
                   type="button"
+                  variant="outline"
+                  size="sm"
                   onClick={() => disconnect.dispatch()}
                   disabled={state === 'creating' || disconnect.isRunning}
-                  className="rounded-lg border border-border-low px-3 py-2 text-sm font-medium transition hover:border-foreground/30 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   Ngắt kết nối
-                </button>
+                </Button>
               </div>
 
-              {state === 'loading' && <p className="text-muted" role="status">Đang kiểm tra hồ sơ trên Solana...</p>}
+              {state === 'loading' && (
+                <p className="text-muted-foreground" role="status">Đang kiểm tra hồ sơ trên Solana...</p>
+              )}
+
               {state === 'missing' && (
-                <div className="flex flex-col gap-4">
-                   <p>Ví này chưa có hồ sơ.</p>
-                  <button
-                    type="button"
-                    onClick={handleCreate}
-                    disabled={!connectedWallet.signer}
-                    className="w-fit rounded-lg bg-foreground px-4 py-2 font-medium text-background transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                     Tạo hồ sơ
-                  </button>
-                  {profileAddress && <p className="break-all text-xs text-muted">Profile PDA: {profileAddress}</p>}
+                <div className="flex flex-col gap-4 rounded-xl border border-primary/25 bg-signal-soft/40 p-5">
+                  <div>
+                    <p className="font-display text-lg font-semibold">Ví này chưa có hồ sơ.</p>
+                    <p className="mt-1 text-sm text-muted-foreground">Một giao dịch ký sẽ khởi tạo PDA profile của bạn.</p>
+                  </div>
+                  <Button type="button" onClick={handleCreate} disabled={!connectedWallet.signer} className="w-fit">
+                    Tạo hồ sơ
+                  </Button>
+                  {profileAddress && (
+                    <p className="break-all font-mono text-xs text-muted-foreground">Profile PDA: {profileAddress}</p>
+                  )}
                 </div>
               )}
-              {state === 'creating' && <p className="text-muted" role="status">Đang chờ ví ký và xác nhận giao dịch...</p>}
+
+              {state === 'creating' && (
+                <p className="text-muted-foreground" role="status">Đang chờ ví ký và xác nhận giao dịch...</p>
+              )}
+
               {state === 'existing' && profile && (
                 <div className="flex flex-col gap-8">
                   <dl className="grid gap-4 sm:grid-cols-2">
-                    <div><dt className="text-sm text-muted">Profile PDA</dt><dd className="mt-1 break-all font-mono text-xs">{profile.address}</dd></div>
-                    <div><dt className="text-sm text-muted">Owner</dt><dd className="mt-1 break-all font-mono text-xs">{profile.owner}</dd></div>
-                    <div><dt className="text-sm text-muted">Resume count</dt><dd className="mt-1 text-xl font-semibold">{profile.resumeCount.toString()}</dd></div>
-                    <div><dt className="text-sm text-muted">Credential count</dt><dd className="mt-1 text-xl font-semibold">{profile.credentialCount.toString()}</dd></div>
+                    <MetaCell label="Profile PDA" value={profile.address} mono />
+                    <MetaCell label="Owner" value={profile.owner} mono />
+                    <MetaCell label="Resume count" value={profile.resumeCount.toString()} large />
+                    <MetaCell label="Credential count" value={profile.credentialCount.toString()} large />
                   </dl>
 
-                  <section className="border-t border-border-low pt-6" aria-labelledby="create-resume-title">
-                     <h2 id="create-resume-title" className="text-xl font-semibold">Tạo CV</h2>
-                    <p className="mt-2 text-sm leading-6 text-muted">
+                  <section className="border-t border-border pt-6" aria-labelledby="create-resume-title">
+                    <h2 id="create-resume-title" className="font-display text-xl font-semibold">Tạo CV</h2>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
                       Bước này chỉ tạo container resume riêng tư trên Solana. Nội dung CV, hash và URI chỉ được thêm ở bước công bố phiên bản riêng biệt.
                     </p>
 
                     {(resumeState === 'loading' || resumeState === 'creating' || resumeState === 'refreshing') && (
-                      <p className="mt-4 text-sm text-muted" role="status">
+                      <p className="mt-4 text-sm text-muted-foreground" role="status">
                         {resumeState === 'loading'
                           ? 'Đang xác định Resume PDA tiếp theo...'
                           : resumeState === 'creating'
@@ -382,84 +405,146 @@ export default function ProfilePage() {
                     )}
 
                     {(resumeState === 'ready' || resumeState === 'success') && nextResumeAddress && (
-                      <div className="mt-4 rounded-xl border border-border-low bg-cream/40 p-4">
-                        <p className="text-sm text-muted">Resume tiếp theo</p>
+                      <div className="mt-4 rounded-xl border border-border bg-secondary/40 p-4">
+                        <p className="text-sm text-muted-foreground">Resume tiếp theo</p>
                         <p className="mt-1 font-semibold">ID {profile.resumeCount.toString()}</p>
-                        <p className="mt-2 break-all font-mono text-xs text-muted">PDA: {nextResumeAddress}</p>
-                        <button
+                        <p className="mt-2 break-all font-mono text-xs text-muted-foreground">PDA: {nextResumeAddress}</p>
+                        <Button
                           type="button"
                           onClick={handleCreateResume}
                           disabled={resumeState !== 'ready' || !connectedWallet.signer}
-                          className="mt-4 rounded-lg bg-foreground px-4 py-2 font-medium text-background transition-opacity hover:opacity-85 disabled:cursor-not-allowed disabled:opacity-50"
+                          className="mt-4"
                         >
                           Tạo resume
-                        </button>
+                        </Button>
                       </div>
                     )}
 
                     {resumeState === 'success' && createdResume && (
-                      <div className="mt-4 rounded-xl border border-border-low p-4" role="status">
-                        <p className="font-semibold">Resume đã được xác minh on-chain</p>
+                      <div className="mt-4 rounded-xl border border-primary/30 bg-signal-soft/30 p-4" role="status">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold">Resume đã được xác minh on-chain</p>
+                          <Badge className="bg-primary/20 text-primary hover:bg-primary/20">On-chain</Badge>
+                        </div>
                         <dl className="mt-3 grid gap-3 sm:grid-cols-2">
-                          <div><dt className="text-xs text-muted">Resume PDA</dt><dd className="break-all font-mono text-xs">{createdResume.address}</dd></div>
-                          <div><dt className="text-xs text-muted">Owner</dt><dd className="break-all font-mono text-xs">{createdResume.owner}</dd></div>
-                          <div><dt className="text-xs text-muted">Resume ID</dt><dd>{createdResume.resumeId.toString()}</dd></div>
-                          <div><dt className="text-xs text-muted">Profile resume count</dt><dd>{profile.resumeCount.toString()}</dd></div>
-                          <div><dt className="text-xs text-muted">Version</dt><dd>{createdResume.activeVersion.toString()} / {createdResume.versionCount.toString()}</dd></div>
-                          <div><dt className="text-xs text-muted">Visibility</dt><dd>{createdResume.isPublic ? 'Công khai' : 'Riêng tư'}</dd></div>
+                          <MetaCell label="Resume PDA" value={createdResume.address} mono compact />
+                          <MetaCell label="Owner" value={createdResume.owner} mono compact />
+                          <MetaCell label="Resume ID" value={createdResume.resumeId.toString()} compact />
+                          <MetaCell label="Profile resume count" value={profile.resumeCount.toString()} compact />
+                          <MetaCell
+                            label="Version"
+                            value={`${createdResume.activeVersion.toString()} / ${createdResume.versionCount.toString()}`}
+                            compact
+                          />
+                          <MetaCell
+                            label="Visibility"
+                            value={createdResume.isPublic ? 'Công khai' : 'Riêng tư'}
+                            compact
+                          />
                         </dl>
                       </div>
                     )}
 
                     {(resumeState === 'conflict' || resumeState === 'error') && (
-                      <div className="mt-4 flex flex-col gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4" role="alert">
+                      <div className="mt-4 flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4" role="alert">
                         <p>{resumeError}</p>
-                        <button type="button" onClick={() => void resetResumeAction()} className="w-fit rounded-lg border border-border-low px-4 py-2 text-sm font-medium hover:border-foreground/30">Tải lại trạng thái</button>
+                        <Button type="button" variant="outline" className="w-fit" onClick={() => void resetResumeAction()}>
+                          Tải lại trạng thái
+                        </Button>
                       </div>
                     )}
                   </section>
 
                   {ownedResumes.length > 0 && (
-                    <section className="border-t border-border-low pt-6" aria-labelledby="publish-version-title">
-                     <h2 id="publish-version-title" className="text-xl font-semibold">Cập nhật phiên bản CV</h2>
-                      <p className="mt-2 text-sm leading-6 text-muted">CV được lưu bằng Cloudinary public URL. Bất kỳ ai có URL đều có thể tải file; cờ resume riêng tư không phải cơ chế kiểm soát truy cập.</p>
-                       <label className="mt-4 block text-sm font-medium">CV</label>
+                    <section className="border-t border-border pt-6" aria-labelledby="publish-version-title">
+                      <h2 id="publish-version-title" className="font-display text-xl font-semibold">Cập nhật phiên bản CV</h2>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                        CV được lưu bằng Cloudinary public URL. Bất kỳ ai có URL đều có thể tải file; cờ resume riêng tư không phải cơ chế kiểm soát truy cập.
+                      </p>
+
+                      <label className="mt-4 block text-sm font-medium">CV</label>
                       <select
                         value={selectedResume?.address ?? ''}
                         onChange={(event) => {
                           setSelectedResume(ownedResumes.find((item) => item.address === event.target.value) ?? null)
-                          setPreparedVersion(null); setPublishState('idle'); setPublishedVersion(null)
+                          setPreparedVersion(null)
+                          setPublishState('idle')
+                          setPublishedVersion(null)
                         }}
-                        disabled={['hashing', 'uploading', 'signing', 'verifying'].includes(publishState)}
-                        className="mt-2 w-full rounded-lg border border-border-low bg-card px-3 py-2"
+                        disabled={publishing}
+                        className="mt-2 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
                       >
-                        {ownedResumes.map((item) => <option key={item.address} value={item.address}>Resume #{item.resumeId.toString()} - version tiếp theo {item.versionCount.toString()}</option>)}
+                        {ownedResumes.map((item) => (
+                          <option key={item.address} value={item.address}>
+                            Resume #{item.resumeId.toString()} - version tiếp theo {item.versionCount.toString()}
+                          </option>
+                        ))}
                       </select>
-                      <div className="mt-4"><UploadZone name="resume-version" accept=".pdf,.docx" file={publishFile} onFileChange={handlePublishFileChange} hint="PDF hoặc DOCX, tối đa 10 MB" disabled={['hashing', 'uploading', 'signing', 'verifying'].includes(publishState)} /></div>
-                      <label className="mt-4 flex items-start gap-3 text-sm">
-                        <input type="checkbox" checked={publicAcknowledged} onChange={(event) => setPublicAcknowledged(event.target.checked)} disabled={['hashing', 'uploading', 'signing', 'verifying'].includes(publishState)} />
+
+                      <div className="mt-4">
+                        <UploadZone
+                          name="resume-version"
+                          accept=".pdf,.docx"
+                          file={publishFile}
+                          onFileChange={handlePublishFileChange}
+                          hint="PDF hoặc DOCX, tối đa 10 MB"
+                          disabled={publishing}
+                        />
+                      </div>
+
+                      <label className="mt-4 flex items-start gap-3 text-sm text-muted-foreground">
+                        <input
+                          type="checkbox"
+                          checked={publicAcknowledged}
+                          onChange={(event) => setPublicAcknowledged(event.target.checked)}
+                          disabled={publishing}
+                          className="mt-1"
+                        />
                         Tôi hiểu file và URI Cloudinary sẽ công khai, kể cả khi resume có trạng thái riêng tư.
                       </label>
+
                       {!preparedVersion && (
-                        <button type="button" onClick={handlePrepareVersion} disabled={!publishFile || !selectedResume || !publicAcknowledged || ['hashing', 'uploading'].includes(publishState)} className="mt-4 rounded-lg bg-foreground px-4 py-2 font-medium text-background disabled:opacity-50">
-                          {publishState === 'hashing' ? 'Đang tính hash...' : publishState === 'uploading' ? 'Đang upload...' : 'Chuẩn bị phiên bản'}
-                        </button>
+                        <Button
+                          type="button"
+                          onClick={handlePrepareVersion}
+                          disabled={!publishFile || !selectedResume || !publicAcknowledged || ['hashing', 'uploading'].includes(publishState)}
+                          className="mt-4"
+                        >
+                          {publishState === 'hashing'
+                            ? 'Đang tính hash...'
+                            : publishState === 'uploading'
+                              ? 'Đang upload...'
+                              : 'Chuẩn bị phiên bản'}
+                        </Button>
                       )}
+
                       {preparedVersion && (
-                        <div className="mt-4 rounded-xl border border-border-low p-4">
+                        <div className="mt-4 rounded-xl border border-border bg-secondary/30 p-4">
                           <p className="font-semibold">Bản chuẩn bị version {preparedVersion.expectedVersion.toString()}</p>
-                          <p className="mt-2 break-all text-xs">PDA: {preparedVersion.versionAddress}</p>
-                          <p className="mt-1 break-all text-xs">URI: {preparedVersion.contentUri}</p>
+                          <p className="mt-2 break-all font-mono text-xs text-muted-foreground">PDA: {preparedVersion.versionAddress}</p>
+                          <p className="mt-1 break-all text-xs text-muted-foreground">URI: {preparedVersion.contentUri}</p>
                           <p className="mt-1 break-all font-mono text-xs">Content: {preparedVersion.contentHashHex}</p>
                           <p className="mt-1 break-all font-mono text-xs">Metadata: {preparedVersion.metadataHashHex}</p>
-                          <p className="mt-1 text-xs">{preparedVersion.fileName} · {preparedVersion.mediaType} · {preparedVersion.size} bytes</p>
-                          <button type="button" onClick={handlePublishVersion} disabled={publishState === 'signing' || publishState === 'verifying' || publishState === 'stale'} className="mt-4 rounded-lg bg-foreground px-4 py-2 font-medium text-background disabled:opacity-50">
-                            {publishState === 'signing' ? 'Đang chờ ký...' : publishState === 'verifying' ? 'Đang xác minh...' : 'Ký và công bố'}
-                          </button>
+                          <p className="mt-1 text-xs text-muted-foreground">
+                            {preparedVersion.fileName} · {preparedVersion.mediaType} · {preparedVersion.size} bytes
+                          </p>
+                          <Button
+                            type="button"
+                            onClick={handlePublishVersion}
+                            disabled={publishState === 'signing' || publishState === 'verifying' || publishState === 'stale'}
+                            className="mt-4"
+                          >
+                            {publishState === 'signing'
+                              ? 'Đang chờ ký...'
+                              : publishState === 'verifying'
+                                ? 'Đang xác minh...'
+                                : 'Ký và công bố'}
+                          </Button>
                         </div>
                       )}
+
                       {publishedVersion && publishState === 'success' && (
-                        <div className="mt-4 rounded-xl border border-border-low p-4" role="status">
+                        <div className="mt-4 rounded-xl border border-primary/30 bg-signal-soft/30 p-4" role="status">
                           <p className="font-semibold">Phiên bản đã xác minh on-chain</p>
                           <p className="mt-2 break-all text-xs">Version PDA: {publishedVersion.address}</p>
                           <p className="break-all text-xs">Owner: {publishedVersion.owner}</p>
@@ -467,33 +552,178 @@ export default function ProfilePage() {
                           <p className="break-all text-xs">URI: {publishedVersion.contentUri}</p>
                           <p className="break-all font-mono text-xs">Content: {bytesToHex(publishedVersion.contentHash)}</p>
                           <p className="break-all font-mono text-xs">Metadata: {bytesToHex(publishedVersion.metadataHash)}</p>
-                          <p className="text-sm">Version {publishedVersion.version.toString()} · {publishedVersion.isRevoked ? 'Đã thu hồi' : 'Đang hoạt động'}</p>
-                          <p className="text-sm">Active/version count: {selectedResume?.activeVersion.toString()} / {selectedResume?.versionCount.toString()}</p>
+                          <p className="text-sm">
+                            Version {publishedVersion.version.toString()} ·{' '}
+                            {publishedVersion.isRevoked ? 'Đã thu hồi' : 'Đang hoạt động'}
+                          </p>
+                          <p className="text-sm">
+                            Active/version count: {selectedResume?.activeVersion.toString()} /{' '}
+                            {selectedResume?.versionCount.toString()}
+                          </p>
                           <p className="text-sm">Created: {publishedVersion.createdAt.toString()}</p>
-                          <ResumePreview version={{ ...publishedVersion, fileName: preparedVersion?.fileName ?? 'resume', mediaType: preparedVersion?.mediaType ?? 'application/octet-stream', size: preparedVersion?.size ?? 0, verified: true } satisfies VerifiedResumeVersion} />
+                          <ResumePreview
+                            version={
+                              {
+                                ...publishedVersion,
+                                fileName: preparedVersion?.fileName ?? 'resume',
+                                mediaType: preparedVersion?.mediaType ?? 'application/octet-stream',
+                                size: preparedVersion?.size ?? 0,
+                                verified: true,
+                              } satisfies VerifiedResumeVersion
+                            }
+                          />
                         </div>
                       )}
-                      {(publishState === 'error' || publishState === 'stale') && <div className="mt-4 rounded-xl border border-red-500/30 bg-red-500/10 p-4" role="alert"><p>{publishError}</p><button type="button" onClick={() => setPublishState(preparedVersion ? 'prepared' : 'idle')} className="mt-3 rounded-lg border border-border-low px-3 py-2 text-sm">Thử lại</button></div>}
+
+                      {(publishState === 'error' || publishState === 'stale') && (
+                        <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 p-4" role="alert">
+                          <p>{publishError}</p>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="mt-3"
+                            onClick={() => setPublishState(preparedVersion ? 'prepared' : 'idle')}
+                          >
+                            Thử lại
+                          </Button>
+                        </div>
+                      )}
                     </section>
                   )}
-                  <section className="border-t border-border-low pt-6" aria-labelledby="credential-list-title">
-                     <h2 id="credential-list-title" className="text-xl font-semibold">Chứng nhận của tôi</h2>
-                     {assetState === 'loading' && <p className="mt-3 text-sm text-muted" role="status">Đang tải chứng nhận...</p>}
-                    {assetState === 'error' && <div className="mt-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4" role="alert"><p>{assetError}</p><button type="button" onClick={() => void loadProfile()} className="mt-3 rounded-lg border border-border-low px-3 py-2 text-sm">Thử lại</button></div>}
-                     {assetState === 'ready' && (credentials.length === 0 ? <p className="mt-3 text-sm text-muted">Chưa có chứng nhận hợp lệ.</p> : <div className="mt-4 grid gap-3">{credentials.map((credential) => <div key={credential.address} className="rounded-xl border border-border-low p-4"><p className="font-medium">Chứng nhận #{credential.credentialId.toString()} · {credential.status === 'Active' ? 'Đang hoạt động' : 'Đã thu hồi'}</p><p className="mt-1 break-all font-mono text-xs text-muted">Đơn vị cấp: {credential.issuer}</p><p className="mt-2 text-sm">{credential.subjectAccepted ? 'Đã được người nhận xác nhận' : 'Chưa được người nhận xác nhận'} · {credential.expiresAt === null ? 'Không hết hạn' : `Hết hạn: ${credential.expiresAt.toString()}`}</p><p className="mt-1 break-all text-xs text-muted">URI: {credential.credentialUri}</p><p className="mt-1 break-all font-mono text-xs text-muted">Loại: {bytesToHex(credential.credentialTypeHash)}</p><p className="mt-1 break-all font-mono text-xs text-muted">Claims: {bytesToHex(credential.claimsHash)}</p>{credential.status === "Active" && !credential.subjectAccepted && connectedWallet?.signer && <button type="button" onClick={async () => { if (!connectedWallet) return; try { await acceptCredential(client, address(connectedWallet.account.address) as Address, credential.address, true); await loadProfile() } catch {} }} className="mt-2 rounded-lg bg-foreground px-3 py-1 text-xs font-medium text-background">Xác nhận</button>}</div>)}</div>)}
+
+                  <section className="border-t border-border pt-6" aria-labelledby="credential-list-title">
+                    <h2 id="credential-list-title" className="font-display text-xl font-semibold">Chứng nhận của tôi</h2>
+                    {assetState === 'loading' && (
+                      <p className="mt-3 text-sm text-muted-foreground" role="status">Đang tải chứng nhận...</p>
+                    )}
+                    {assetState === 'error' && (
+                      <div className="mt-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4" role="alert">
+                        <p>{assetError}</p>
+                        <Button type="button" variant="outline" size="sm" className="mt-3" onClick={() => void loadProfile()}>
+                          Thử lại
+                        </Button>
+                      </div>
+                    )}
+                    {assetState === 'ready' &&
+                      (credentials.length === 0 ? (
+                        <p className="mt-3 text-sm text-muted-foreground">Chưa có chứng nhận hợp lệ.</p>
+                      ) : (
+                        <div className="mt-4 grid gap-3">
+                          {credentials.map((credential) => (
+                            <Card key={credential.address} className="border-border/80 bg-secondary/20">
+                              <CardHeader className="pb-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <CardTitle className="text-base">
+                                    Chứng nhận #{credential.credentialId.toString()}
+                                  </CardTitle>
+                                  <Badge variant={credential.status === 'Active' ? 'default' : 'secondary'}>
+                                    {credential.status === 'Active' ? 'Đang hoạt động' : 'Đã thu hồi'}
+                                  </Badge>
+                                </div>
+                                <CardDescription className="break-all font-mono text-xs">
+                                  Đơn vị cấp: {credential.issuer}
+                                </CardDescription>
+                              </CardHeader>
+                              <CardContent className="space-y-1 text-sm">
+                                <p>
+                                  {credential.subjectAccepted
+                                    ? 'Đã được người nhận xác nhận'
+                                    : 'Chưa được người nhận xác nhận'}{' '}
+                                  ·{' '}
+                                  {credential.expiresAt === null
+                                    ? 'Không hết hạn'
+                                    : `Hết hạn: ${credential.expiresAt.toString()}`}
+                                </p>
+                                <p className="break-all text-xs text-muted-foreground">URI: {credential.credentialUri}</p>
+                                <p className="break-all font-mono text-xs text-muted-foreground">
+                                  Loại: {bytesToHex(credential.credentialTypeHash)}
+                                </p>
+                                <p className="break-all font-mono text-xs text-muted-foreground">
+                                  Claims: {bytesToHex(credential.claimsHash)}
+                                </p>
+                                {credential.status === 'Active' &&
+                                  !credential.subjectAccepted &&
+                                  connectedWallet?.signer && (
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      className="mt-2"
+                                      onClick={async () => {
+                                        if (!connectedWallet) return
+                                        try {
+                                          await acceptCredential(
+                                            client,
+                                            address(connectedWallet.account.address) as Address,
+                                            credential.address,
+                                            true,
+                                          )
+                                          await loadProfile()
+                                          toast.success('Đã xác nhận chứng nhận')
+                                        } catch (acceptError) {
+                                          toast.error('Không thể xác nhận', {
+                                            description:
+                                              acceptError instanceof Error
+                                                ? acceptError.message
+                                                : 'Giao dịch thất bại',
+                                          })
+                                        }
+                                      }}
+                                    >
+                                      Xác nhận
+                                    </Button>
+                                  )}
+                              </CardContent>
+                            </Card>
+                          ))}
+                        </div>
+                      ))}
                   </section>
                 </div>
               )}
+
               {state === 'error' && (
-                <div className="flex flex-col gap-3" role="alert">
+                <div className="flex flex-col gap-3 rounded-xl border border-destructive/30 bg-destructive/10 p-4" role="alert">
                   <p>{error}</p>
-                  <button type="button" onClick={() => void loadProfile()} className="w-fit rounded-lg border border-border-low px-4 py-2 text-sm font-medium hover:border-foreground/30">Thử lại</button>
+                  <Button type="button" variant="outline" className="w-fit" onClick={() => void loadProfile()}>
+                    Thử lại
+                  </Button>
                 </div>
               )}
             </div>
           )}
-        </section>
-      </div>
-    </main>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function MetaCell({
+  label,
+  value,
+  mono,
+  large,
+  compact,
+}: {
+  label: string
+  value: string
+  mono?: boolean
+  large?: boolean
+  compact?: boolean
+}) {
+  return (
+    <div>
+      <dt className={cn(compact ? 'text-xs' : 'text-sm', 'text-muted-foreground')}>{label}</dt>
+      <dd
+        className={cn(
+          'mt-1',
+          large && 'text-xl font-semibold',
+          mono && 'break-all font-mono text-xs',
+          !mono && !large && 'text-sm',
+        )}
+      >
+        {value}
+      </dd>
+    </div>
   )
 }

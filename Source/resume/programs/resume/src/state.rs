@@ -115,3 +115,16 @@ pub struct LinkGrant {
     pub status: GrantStatus,
     pub bump: u8,
 }
+
+/// On-chain binding of a wallet to its encryption public-key version.
+/// Full SPKI material stays off-chain; only SHA-256(SPKI) is stored here.
+#[account]
+#[derive(InitSpace)]
+pub struct EncryptionProfile {
+    pub owner: Pubkey,
+    pub key_version: u32,
+    pub public_key_hash: [u8; 32],
+    pub updated_at: i64,
+    pub bump: u8,
+    pub _reserved: [u8; 32],
+}

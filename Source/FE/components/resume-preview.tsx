@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import type { ResumeVersionAccount } from '@/lib/resumeVersionProgram'
+import { Button } from '@/components/ui/button'
 
 export type VerifiedResumeVersion = ResumeVersionAccount & {
   fileName: string
@@ -43,40 +44,60 @@ export function ResumePreview({ version }: { version: VerifiedResumeVersion }) {
   if (!version.verified || version.isRevoked) return null
 
   return (
-    <section className="mt-4 rounded-xl border border-border-low p-4" aria-labelledby="resume-preview-title">
+    <section className="mt-4 rounded-xl border border-border bg-secondary/20 p-4" aria-labelledby="resume-preview-title">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 id="resume-preview-title" className="font-semibold">Xem resume đã xác minh</h3>
-          <p className="mt-1 text-xs text-muted">{version.fileName} · {version.mediaType} · {formatBytes(version.size)} · Version {version.version.toString()}</p>
+          <h3 id="resume-preview-title" className="font-display font-semibold">Xem resume đã xác minh</h3>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {version.fileName} · {version.mediaType} · {formatBytes(version.size)} · Version {version.version.toString()}
+          </p>
         </div>
-        {uri && <div className="flex flex-wrap gap-2">
-          <a href={uri.href} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-border-low px-3 py-2 text-xs font-medium hover:border-foreground/30">Mở trong tab mới</a>
-          <a href={uri.href} download={version.fileName} target="_blank" rel="noopener noreferrer" className="rounded-lg bg-foreground px-3 py-2 text-xs font-medium text-background">Tải xuống</a>
-        </div>}
+        {uri && (
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" size="sm">
+              <a href={uri.href} target="_blank" rel="noopener noreferrer">
+                Mở trong tab mới
+              </a>
+            </Button>
+            <Button asChild size="sm">
+              <a href={uri.href} download={version.fileName} target="_blank" rel="noopener noreferrer">
+                Tải xuống
+              </a>
+            </Button>
+          </div>
+        )}
       </div>
 
-      <p className="mt-3 rounded-lg bg-cream/60 px-3 py-2 text-xs text-muted">
+      <p className="mt-3 rounded-lg border border-border bg-background/50 px-3 py-2 text-xs text-muted-foreground">
         File và URI Cloudinary này là công khai. `is_public` không phải cơ chế bảo vệ quyền truy cập file.
       </p>
 
       {!uri ? (
-        <p className="mt-4 text-sm text-red-700" role="alert">URI public của resume không hợp lệ, không thể mở trực tiếp.</p>
+        <p className="mt-4 text-sm text-destructive" role="alert">
+          URI public của resume không hợp lệ, không thể mở trực tiếp.
+        </p>
       ) : mode === 'pdf' ? (
         <div className="mt-4">
-          <p className="mb-3 text-sm text-muted" role="status">
-            {previewError ? 'Không thể hiển thị inline. Bạn có thể mở tab mới hoặc tải file gốc.' : 'Nếu preview không tải được, hãy mở tab mới hoặc tải file gốc.'}
+          <p className="mb-3 text-sm text-muted-foreground" role="status">
+            {previewError
+              ? 'Không thể hiển thị inline. Bạn có thể mở tab mới hoặc tải file gốc.'
+              : 'Nếu preview không tải được, hãy mở tab mới hoặc tải file gốc.'}
           </p>
           <iframe
             src={uri.href}
             title={`Preview ${version.fileName}`}
-            className="h-[min(70vh,720px)] w-full rounded-lg border border-border-low bg-white"
+            className="h-[min(70vh,720px)] w-full rounded-lg border border-border bg-white"
             onError={() => setPreviewError(true)}
           />
         </div>
       ) : mode === 'docx' ? (
-        <p className="mt-4 text-sm text-muted">DOCX không được preview trực tiếp trong MVP. Hãy mở hoặc tải file gốc.</p>
+        <p className="mt-4 text-sm text-muted-foreground">
+          DOCX không được preview trực tiếp trong MVP. Hãy mở hoặc tải file gốc.
+        </p>
       ) : (
-        <p className="mt-4 text-sm text-muted">Định dạng này không hỗ trợ preview inline. Hãy mở hoặc tải file gốc.</p>
+        <p className="mt-4 text-sm text-muted-foreground">
+          Định dạng này không hỗ trợ preview inline. Hãy mở hoặc tải file gốc.
+        </p>
       )}
     </section>
   )

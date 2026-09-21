@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { isEvaluationResult } from '@/lib/evaluationApi'
 import { ResultView } from '@/components/result-view'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 export default async function ResultPage({
   searchParams,
@@ -20,25 +22,22 @@ export default async function ResultPage({
 
   if (!isEvaluationResult(result)) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-bg1 px-6 text-foreground">
-        <section className="w-full max-w-lg rounded-3xl border border-border-low bg-card p-8 text-center shadow-[0_20px_60px_-40px_rgba(15,23,42,0.45)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-primary/70">
-            ResuMate
-          </p>
-          <h1 className="mt-3 text-2xl font-semibold">
-            Chưa có kết quả đánh giá
-          </h1>
-          <p className="mt-3 text-sm leading-6 text-muted">
-            Hãy gửi CV và mô tả công việc trước khi xem kết quả.
-          </p>
-          <Link
-            href="/evaluate"
-            className="mt-6 inline-flex rounded-xl bg-foreground px-5 py-3 text-sm font-semibold text-background transition hover:opacity-90"
-          >
-            Bắt đầu đánh giá
-          </Link>
-        </section>
-      </main>
+      <div className="mx-auto flex w-full max-w-lg justify-center py-10">
+        <Card className="w-full border-border/70 bg-card/90 shadow-panel animate-fade-up">
+          <CardHeader className="text-center">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.28em] text-primary">ResuMate</p>
+            <CardTitle className="font-display text-2xl">Chưa có kết quả đánh giá</CardTitle>
+            <CardDescription>
+              Hãy gửi CV và mô tả công việc trước khi xem kết quả.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex justify-center">
+            <Button asChild>
+              <Link href="/evaluate">Bắt đầu đánh giá</Link>
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     )
   }
 

@@ -19,6 +19,7 @@ const CREATE_ACCESS_GRANT_DISCRIMINATOR = new Uint8Array([72, 11, 152, 6, 199, 5
 const REVOKE_ACCESS_GRANT_DISCRIMINATOR = new Uint8Array([172, 231, 25, 94, 128, 94, 232, 218])
 const CREATE_LINK_GRANT_DISCRIMINATOR = new Uint8Array([164, 180, 10, 203, 76, 35, 147, 72])
 const REVOKE_LINK_GRANT_DISCRIMINATOR = new Uint8Array([146, 93, 37, 141, 118, 5, 239, 178])
+const CONSUME_LINK_GRANT_DISCRIMINATOR = new Uint8Array([91, 32, 29, 230, 78, 16, 71, 37])
 
 export type GrantStatus = 'Active' | 'Revoked'
 
@@ -338,5 +339,40 @@ export async function fetchAccessGrantsForCredential(
       return []
     }
   })
+}
+
+export async function consumeLinkGrantInstruction(
+  consumer: Address,
+  credential: Address,
+  linkGrant: Address,
+  linkGrantId: bigint,
+  secret: Uint8Array,
+): Promise<Instruction> {
+  if (secret.length !== 32) throw new Error('Link grant secret must be 32 bytes.')
+  const data = new Uint8Array(8 + 8 + 32)
+  data.set(CONSUME_LINK_GRANT_DISCRIMINATOR, 0)
+  data.set(encodeU64(linkGrantId), 8)
+  data.set(secret, 16)
+  return {
+    programAddress: RESUME_PROGRAM_ID,
+    accounts: [
+      { address: consumer, role: AccountRole.READONLY_SIGNER },
+      { address: credential, role: AccountRole.READONLY },
+      { address: linkGrant, role: AccountRole.WRITABLE },
+    ],
+    data,
+  }
+}
+
+export async function consumeLinkGrant(
+  client: SolanaWalletClient,
+  consumer: Address,
+  credential: Address,
+  linkGrantId: bigint,
+  secret: Uint8Array,
+) {
+  const linkGrant = await deriveLinkGrantAddress(credential, linkGrantId)
+  const ix = await consumeLinkGrantInstruction(consumer, credential, linkGrant, linkGrantId, secret)
+  await client.sendTransaction([ix])
 }
 

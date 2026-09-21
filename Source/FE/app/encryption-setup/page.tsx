@@ -1,8 +1,19 @@
 'use client'
 
 import { useState } from 'react'
-import { createAndStoreIdentity, hasStoredIdentity, clearStoredIdentity, getStoredPublicKey } from '@/lib/encryptionIdentity'
+import { toast } from 'sonner'
+import {
+  createAndStoreIdentity,
+  hasStoredIdentity,
+  clearStoredIdentity,
+  getStoredPublicKey,
+} from '@/lib/encryptionIdentity'
 import { exportPublicKey, importPublicKey } from '@/lib/credentialCrypto'
+import { PageHeader } from '@/components/page-header'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Input } from '@/components/ui/input'
 
 type SetupState = 'idle' | 'creating' | 'success' | 'error'
 
@@ -29,13 +40,16 @@ export default function EncryptionSetupPage() {
       const identity = await createAndStoreIdentity(passphrase)
       const pubKey = await importPublicKey(identity.publicKeySpki)
       const pubBytes = await exportPublicKey(pubKey)
-      setPublicKeyHex(Array.from(pubBytes).map(b => b.toString(16).padStart(2, '0')).join(''))
+      setPublicKeyHex(Array.from(pubBytes).map((b) => b.toString(16).padStart(2, '0')).join(''))
       setState('success')
       setPassphrase('')
       setConfirmPassphrase('')
+      toast.success('Đã tạo thiết lập bảo mật')
     } catch (e) {
       setState('error')
-      setError(e instanceof Error ? e.message : 'Failed to create encryption identity.')
+      const message = e instanceof Error ? e.message : 'Failed to create encryption identity.'
+      setError(message)
+      toast.error('Không thể tạo khóa', { description: message })
     }
   }
 
@@ -43,101 +57,116 @@ export default function EncryptionSetupPage() {
     clearStoredIdentity()
     setPublicKeyHex(null)
     setState('idle')
+    toast.message('Đã xóa thiết lập bảo mật')
   }
 
   function loadExistingKey() {
     const pub = getStoredPublicKey()
     if (pub) {
-      setPublicKeyHex(Array.from(pub).map(b => b.toString(16).padStart(2, '0')).join(''))
+      setPublicKeyHex(Array.from(pub).map((b) => b.toString(16).padStart(2, '0')).join(''))
     }
   }
 
   return (
-    <main className="min-h-screen bg-background">
-      <div className="mx-auto max-w-3xl">
-        <header className="mb-8">
-          <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted">Bảo mật tài liệu</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight">Bảo mật tài liệu</h1>
-          <p className="mt-3 max-w-2xl leading-7 text-muted">
-            Thiết lập khóa bảo mật để nhận tài liệu chứng nhận an toàn. Khóa này tách biệt với khóa ký giao dịch của ví Solana.
-          </p>
-        </header>
+    <div className="mx-auto w-full max-w-3xl">
+      <PageHeader
+        eyebrow="Bảo mật tài liệu"
+        title="Bảo mật tài liệu"
+        description="Thiết lập khóa bảo mật để nhận tài liệu chứng nhận an toàn. Khóa này tách biệt với khóa ký giao dịch của ví Solana."
+      />
 
-        <section className="rounded-2xl border border-border-low bg-card p-6 shadow-[0_20px_80px_-50px_rgba(0,0,0,0.35)]">
+      <Card className="border-border/70 bg-card/80 shadow-panel animate-fade-up">
+        <CardHeader>
+          <CardTitle className="font-display text-lg">Encryption identity</CardTitle>
+          <CardDescription>Khóa mã hóa tài liệu lưu trên trình duyệt của bạn.</CardDescription>
+        </CardHeader>
+        <CardContent>
           {hasIdentity ? (
             <div className="flex flex-col gap-4">
-              <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-4">
-                <p className="font-medium">Bảo mật tài liệu đã được thiết lập</p>
-                <p className="mt-1 text-sm text-muted">Trình duyệt của bạn đang lưu một cặp khóa bảo mật.</p>
+              <div className="rounded-xl border border-primary/30 bg-signal-soft/40 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-medium">Bảo mật tài liệu đã được thiết lập</p>
+                  <Badge className="bg-primary/20 text-primary hover:bg-primary/20">Ready</Badge>
+                </div>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Trình duyệt của bạn đang lưu một cặp khóa bảo mật.
+                </p>
               </div>
               {!publicKeyHex && (
-                <button type="button" onClick={loadExistingKey} className="w-fit rounded-lg border border-border-low px-4 py-2 text-sm">
-                   Hiện khóa công khai
-                </button>
+                <Button type="button" variant="outline" className="w-fit" onClick={loadExistingKey}>
+                  Hiện khóa công khai
+                </Button>
               )}
               {publicKeyHex && (
-                <div className="rounded-xl border border-border-low p-4">
-                   <p className="text-sm font-medium">Khóa công khai</p>
-                  <p className="mt-2 break-all font-mono text-xs text-muted">{publicKeyHex}</p>
-                   <p className="mt-2 text-xs text-muted">Chia sẻ khóa này với đơn vị cấp để họ mã hóa tài liệu chứng nhận cho bạn.</p>
+                <div className="rounded-xl border border-border p-4">
+                  <p className="text-sm font-medium">Khóa công khai</p>
+                  <p className="mt-2 break-all font-mono text-xs text-muted-foreground">{publicKeyHex}</p>
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Chia sẻ khóa này với đơn vị cấp để họ mã hóa tài liệu chứng nhận cho bạn.
+                  </p>
                 </div>
               )}
               <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
-                 <p className="text-sm font-medium">Hãy sao lưu mật khẩu bảo mật</p>
-                 <p className="mt-1 text-sm text-muted">Nếu mất mật khẩu hoặc xóa dữ liệu trình duyệt, bạn sẽ không thể giải mã tài liệu đã nhận. Hãy lưu mật khẩu ở nơi an toàn.</p>
+                <p className="text-sm font-medium">Hãy sao lưu mật khẩu bảo mật</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Nếu mất mật khẩu hoặc xóa dữ liệu trình duyệt, bạn sẽ không thể giải mã tài liệu đã nhận. Hãy lưu mật
+                  khẩu ở nơi an toàn.
+                </p>
               </div>
-              <button type="button" onClick={handleClear} className="w-fit rounded-lg border border-red-500/30 px-4 py-2 text-sm text-red-600">
-                 Xóa thiết lập bảo mật
-              </button>
+              <Button type="button" variant="destructive" className="w-fit" onClick={handleClear}>
+                Xóa thiết lập bảo mật
+              </Button>
             </div>
           ) : (
             <div className="flex flex-col gap-4">
-               <p className="text-sm text-muted">Chưa có thiết lập bảo mật. Tạo thiết lập để nhận tài liệu chứng nhận được mã hóa.</p>
+              <p className="text-sm text-muted-foreground">
+                Chưa có thiết lập bảo mật. Tạo thiết lập để nhận tài liệu chứng nhận được mã hóa.
+              </p>
               <label className="block text-sm font-medium">
-                 Mật khẩu bảo mật (tối thiểu 8 ký tự)
-                <input
+                Mật khẩu bảo mật (tối thiểu 8 ký tự)
+                <Input
                   type="password"
                   value={passphrase}
                   onChange={(e) => setPassphrase(e.target.value)}
                   disabled={state === 'creating'}
-                  className="mt-2 w-full rounded-lg border border-border-low bg-card px-3 py-2 text-sm"
-                   placeholder="Nhập mật khẩu bảo mật"
+                  className="mt-2"
+                  placeholder="Nhập mật khẩu bảo mật"
                 />
               </label>
               <label className="block text-sm font-medium">
-                 Xác nhận mật khẩu bảo mật
-                <input
+                Xác nhận mật khẩu bảo mật
+                <Input
                   type="password"
                   value={confirmPassphrase}
                   onChange={(e) => setConfirmPassphrase(e.target.value)}
                   disabled={state === 'creating'}
-                  className="mt-2 w-full rounded-lg border border-border-low bg-card px-3 py-2 text-sm"
-                   placeholder="Nhập lại mật khẩu bảo mật"
+                  className="mt-2"
+                  placeholder="Nhập lại mật khẩu bảo mật"
                 />
               </label>
               {error && (
-                <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4" role="alert">
+                <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4" role="alert">
                   <p className="text-sm">{error}</p>
                 </div>
               )}
               {state === 'success' && publicKeyHex && (
-                <div className="rounded-xl border border-green-500/30 bg-green-500/10 p-4">
-                   <p className="font-medium">Đã tạo thiết lập bảo mật</p>
-                  <p className="mt-2 break-all font-mono text-xs text-muted">{publicKeyHex}</p>
+                <div className="rounded-xl border border-primary/30 bg-signal-soft/40 p-4">
+                  <p className="font-medium">Đã tạo thiết lập bảo mật</p>
+                  <p className="mt-2 break-all font-mono text-xs text-muted-foreground">{publicKeyHex}</p>
                 </div>
               )}
-              <button
+              <Button
                 type="button"
                 onClick={() => void handleCreate()}
                 disabled={state === 'creating' || !passphrase || !confirmPassphrase}
-                className="w-fit rounded-lg bg-foreground px-4 py-2 font-medium text-background disabled:opacity-50"
+                className="w-fit"
               >
-                 {state === 'creating' ? 'Đang tạo...' : 'Tạo thiết lập bảo mật'}
-              </button>
+                {state === 'creating' ? 'Đang tạo...' : 'Tạo thiết lập bảo mật'}
+              </Button>
             </div>
           )}
-        </section>
-      </div>
-    </main>
+        </CardContent>
+      </Card>
+    </div>
   )
 }

@@ -9,10 +9,16 @@ import {
   useDisconnect,
   useWallets,
 } from '@solana/kit-plugin-wallet/react'
+import { toast } from 'sonner'
 import { UploadZone } from '@/components/upload-zone'
 import { submitEvaluation } from '@/lib/evaluationApi'
 import type { SolanaWalletClient } from '@/components/solana-provider'
 import { createPaymentFetch } from '@/lib/x402Wallet'
+import { PageHeader } from '@/components/page-header'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { cn } from '@/lib/utils'
 
 type JdMode = 'text' | 'file'
 
@@ -39,8 +45,7 @@ export default function EvaluatePage() {
       return
     }
 
-    const hasJd =
-      jdMode === 'text' ? jdText.trim().length > 0 : jdFile !== null
+    const hasJd = jdMode === 'text' ? jdText.trim().length > 0 : jdFile !== null
     if (!hasJd) {
       setError('Vui lòng cung cấp mô tả công việc (dán văn bản hoặc tải file).')
       return
@@ -48,6 +53,7 @@ export default function EvaluatePage() {
 
     if (!connectedWallet?.signer) {
       setError('Vui lòng kết nối ví Solana có thể ký giao dịch trước khi đánh giá.')
+      toast.error('Cần kết nối ví')
       return
     }
 
@@ -60,100 +66,106 @@ export default function EvaluatePage() {
     }
 
     setIsSubmitting(true)
+    toast.message('Đang đánh giá CV…')
     try {
       const evaluation = await submitEvaluation(
         formData,
         createPaymentFetch(connectedWallet.signer),
       )
       const encoded = encodeURIComponent(JSON.stringify(evaluation))
+      toast.success('Đánh giá hoàn tất')
       router.push(`/result?data=${encoded}`)
     } catch (submissionError) {
-      setError(
+      const message =
         submissionError instanceof Error
           ? submissionError.message
           : 'Không thể đánh giá CV. Vui lòng thử lại.'
-      )
+      setError(message)
+      toast.error('Đánh giá thất bại', { description: message })
     } finally {
       setIsSubmitting(false)
     }
   }
 
   return (
-    <div className="relative min-h-screen overflow-x-clip bg-bg1 text-foreground">
-      <main className="relative z-10 mx-auto flex min-h-screen max-w-4xl flex-col gap-10 border-x border-border-low px-6 py-16">
-        <header className="space-y-3 text-center">
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-            Đánh giá CV
-          </h1>
-          <p className="text-sm text-muted">
-            Tải CV và cung cấp mô tả công việc để nhận đánh giá phù hợp.
-          </p>
-        </header>
+    <div className="mx-auto w-full max-w-4xl">
+      <PageHeader
+        eyebrow="ResuMate · AI evaluation"
+        title="Đánh giá CV"
+        description="Tải CV và cung cấp mô tả công việc để nhận đánh giá phù hợp."
+      />
 
-        <section className="rounded-2xl border border-border-low bg-card p-4 text-sm shadow-[0_20px_80px_-50px_rgba(0,0,0,0.35)]">
+      <Card className="mb-6 border-border/70 bg-card/80 shadow-panel animate-fade-up">
+        <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4 text-sm">
           {connectedWallet ? (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-muted">
+            <>
+              <p className="text-muted-foreground">
                 Ví đã kết nối:{' '}
-                <span className="font-medium text-foreground">
+                <span className="break-all font-mono text-xs text-foreground">
                   {connectedWallet.account.address}
                 </span>
               </p>
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => disconnect.dispatch()}
                 disabled={isSubmitting || disconnect.isRunning}
-                className="rounded-lg border border-border-low px-3 py-2 font-medium transition hover:border-foreground/30 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 Ngắt kết nối
-              </button>
-            </div>
+              </Button>
+            </>
           ) : wallets.length > 0 ? (
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="text-muted">Kết nối ví Solana để thanh toán đánh giá.</p>
+            <>
+              <p className="text-muted-foreground">Kết nối ví Solana để thanh toán đánh giá.</p>
               <div className="flex flex-wrap gap-2">
                 {wallets.map((wallet) => (
-                  <button
+                  <Button
                     key={wallet.name}
                     type="button"
+                    variant="outline"
+                    size="sm"
                     onClick={() => connect.dispatch(wallet)}
                     disabled={isSubmitting || connect.isRunning}
-                    className="rounded-lg border border-border-low px-3 py-2 font-medium transition hover:border-foreground/30 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     Kết nối {wallet.name}
-                  </button>
+                  </Button>
                 ))}
               </div>
-            </div>
+            </>
           ) : (
-            <p className="text-muted">
+            <p className="text-muted-foreground">
               Không tìm thấy ví Solana tương thích. Hãy cài ví hỗ trợ Wallet Standard và chọn đúng mạng.
             </p>
           )}
-        </section>
+        </CardContent>
+      </Card>
 
-        {error && (
-          <div
-            className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-center text-sm text-foreground"
-            role="alert"
-          >
-            {error}
-          </div>
-        )}
+      {error && (
+        <div
+          className="mb-6 rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm"
+          role="alert"
+        >
+          {error}
+        </div>
+      )}
 
-        {isSubmitting && (
-          <div
-            className="rounded-lg border border-border-low bg-cream/50 px-4 py-3 text-center text-sm text-muted"
-            role="status"
-          >
-            Đang phân tích CV, vui lòng chờ trong giây lát...
-          </div>
-        )}
+      {isSubmitting && (
+        <div
+          className="mb-6 rounded-lg border border-border bg-signal-soft/40 px-4 py-3 text-center text-sm text-muted-foreground"
+          role="status"
+        >
+          Đang phân tích CV, vui lòng chờ trong giây lát...
+        </div>
+      )}
 
-        <form onSubmit={handleSubmit}>
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="h-full rounded-2xl border border-border-low bg-card p-6 shadow-[0_20px_80px_-50px_rgba(0,0,0,0.35)]">
-              <h2 className="mb-3 text-base font-semibold">CV của bạn</h2>
+      <form onSubmit={handleSubmit}>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="border-border/70 bg-card/80 shadow-panel animate-fade-up">
+            <CardHeader>
+              <CardTitle className="font-display text-base">CV của bạn</CardTitle>
+            </CardHeader>
+            <CardContent>
               <UploadZone
                 name="cv"
                 accept=".pdf,.docx"
@@ -162,35 +174,43 @@ export default function EvaluatePage() {
                 hint="PDF, DOCX"
                 disabled={isSubmitting}
               />
-            </div>
+            </CardContent>
+          </Card>
 
-            <div className="h-full rounded-2xl border border-border-low bg-card p-6 shadow-[0_20px_80px_-50px_rgba(0,0,0,0.35)]">
-              <h2 className="mb-3 text-base font-semibold">
-                Mô tả công việc (JD)
-              </h2>
-
+          <Card className="border-border/70 bg-card/80 shadow-panel animate-fade-up" style={{ animationDelay: '60ms' }}>
+            <CardHeader>
+              <CardTitle className="font-display text-base">Mô tả công việc (JD)</CardTitle>
+              <CardDescription>Dán văn bản hoặc tải file JD.</CardDescription>
+            </CardHeader>
+            <CardContent>
               <div className="mb-4 inline-flex gap-2">
-                <button
+                <Button
                   type="button"
+                  size="sm"
+                  variant={jdMode === 'text' ? 'default' : 'outline'}
                   onClick={() => setJdMode('text')}
                   disabled={isSubmitting}
-                  className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${jdMode === 'text' ? 'border-foreground bg-foreground text-background' : 'border-border-low bg-card text-foreground hover:-translate-y-0.5'}`}
                 >
                   Dán văn bản
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  size="sm"
+                  variant={jdMode === 'file' ? 'default' : 'outline'}
                   onClick={() => setJdMode('file')}
                   disabled={isSubmitting}
-                  className={`rounded-lg border px-3 py-2 text-sm font-medium transition ${jdMode === 'file' ? 'border-foreground bg-foreground text-background' : 'border-border-low bg-card text-foreground hover:-translate-y-0.5'}`}
                 >
                   Tải file
-                </button>
+                </Button>
               </div>
 
               {jdMode === 'text' ? (
                 <textarea
-                  className="w-full rounded-lg border border-border-low bg-card px-4 py-2.5 text-sm outline-none transition placeholder:text-muted focus:border-foreground/30 disabled:cursor-not-allowed disabled:opacity-60"
+                  className={cn(
+                    'w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm',
+                    'outline-none placeholder:text-muted-foreground focus-visible:ring-1 focus-visible:ring-ring',
+                    'disabled:cursor-not-allowed disabled:opacity-60',
+                  )}
                   rows={10}
                   placeholder="Dán mô tả công việc vào đây..."
                   value={jdText}
@@ -207,20 +227,24 @@ export default function EvaluatePage() {
                   disabled={isSubmitting}
                 />
               )}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
+        </div>
 
-          <div className="mt-6 text-center">
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="rounded-lg bg-foreground px-12 py-2.5 text-sm font-medium text-background transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              {isSubmitting ? 'Đang đánh giá...' : 'Đánh giá'}
-            </button>
-          </div>
-        </form>
-      </main>
+        <div className="mt-6 flex justify-center">
+          <Button type="submit" size="lg" disabled={isSubmitting} className="min-w-48">
+            {isSubmitting ? 'Đang đánh giá...' : 'Đánh giá'}
+          </Button>
+        </div>
+      </form>
+
+      {connectedWallet && (
+        <div className="mt-4 flex justify-center">
+          <Badge variant="outline" className="font-mono text-[10px]">
+            x402 payment ready
+          </Badge>
+        </div>
+      )}
     </div>
   )
 }
