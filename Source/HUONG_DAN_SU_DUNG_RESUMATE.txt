@@ -1,0 +1,549 @@
+HUONG DAN SU DUNG RESUMATE
+==========================
+
+Phien ban tai lieu: 1.0
+Ung dung: ResuMate - Resume and Credential Platform
+Mang blockchain: Solana (network phu thuoc vao cau hinh trien khai cua ung dung)
+
+1. GIOI THIEU
+-------------
+
+ResuMate la nen tang quan ly CV va chung nhan nghe nghiep. Ung dung ket hop:
+
+- Ho so va cac phien ban CV.
+- Chung nhan (credential) do don vi uy tin cap.
+- Xac minh tinh toan ven cua CV/chung nhan bang hash tren Solana.
+- Ma hoa tai lieu credential va quan ly quyen truy cap.
+- AI danh gia CV theo mo ta cong viec.
+- AI tim kiem cong viec phu hop voi CV.
+
+Blockchain luu cac thong tin xac minh, trang thai, hash, URI va quan he quyen han.
+Noi dung file CV, claims chi tiet va goi tai lieu ma hoa duoc luu off-chain.
+
+Luu y quan trong:
+- Du lieu da ghi tren Solana co the duoc doc qua RPC.
+- Truong "Rieng tu" cua resume chi la metadata cho giao dien, khong phai co che
+  ma hoa tuyet doi.
+- CV duoc upload phien ban hien tai co the nam tren public URL. Bat ky ai co URL
+  deu co the tai file.
+- Khong chia se seed phrase, private key, passphrase ma hoa hoac link chia se cho
+  nguoi khac.
+
+2. CHUAN BI TRUOC KHI SU DUNG
+-----------------------------
+
+2.1. Cai dat vi Solana
+
+Can co mot vi Solana ho tro Wallet Standard, vi du mot vi trinh duyet tuong thich
+voi Solana. Vi duoc dung de:
+
+- Ket noi tai khoan vao ResuMate.
+- Ky giao dich blockchain.
+- Thanh toan phi giao dich va rent khi tao account on-chain.
+- Thanh toan cac dich vu AI neu ung dung yeu cau x402.
+
+Khong nhap seed phrase vao ResuMate. Ung dung chi yeu cau vi ky giao dich thong
+qua cua so xac nhan cua vi.
+
+2.2. Nap SOL
+
+Vi can co du SOL tren dung network de tra:
+
+- Phi giao dich Solana.
+- Rent khi tao profile, resume, version, credential, grant hoac account lien quan.
+- Phi dich vu AI neu co hien thi yeu cau thanh toan.
+
+Neu dang dung devnet/testnet, hay dung SOL test tu faucet phu hop. Khong gui SOL
+mainnet vao dia chi cua mang test.
+
+2.3. Chon dung network
+
+Kiem tra network cua vi trung voi network ma ung dung dang cau hinh. Loi RPC,
+blockhash, khong tim thay program hoac khong tim thay account thuong do chon sai
+network hoac RPC.
+
+3. BAT DAU VA DIEU HUONG
+------------------------
+
+3.1. Ket noi vi
+
+1. Mo website ResuMate.
+2. Tai man hinh "Ket noi de vao khong gian cua ban", chon vi Solana.
+3. Chap thuan yeu cau ket noi trong cua so vi.
+4. Cho ung dung kiem tra tai khoan on-chain.
+5. Sau khi ket noi thanh cong, dia chi vi rut gon se hien o thanh tren.
+
+Neu khong thay vi:
+- Kiem tra extension vi da cai dat va dang mo khoa.
+- Tai lai trang.
+- Kiem tra vi co ho tro Wallet Standard hay khong.
+- Kiem tra dung mang Solana.
+
+3.2. Ngat ket noi
+
+Nhan "Ngat ket noi" o thanh tren hoac trong tung trang. Viec nay chi ngat ket
+noi giao dien, khong xoa du lieu da ghi tren blockchain va khong huy credential.
+
+3.3. Cac khu vuc chinh
+
+- Tong quan: Trang tong hop va dieu huong.
+- Ho so cua toi: Tao profile, tao resume, upload va cong bo version CV, xem
+  credential.
+- Quyen truy cap tai lieu: Xem grant va tao/thu hoi link chia se.
+- Bao mat tai lieu: Tao encryption identity, dang ky public key, backup va xoay khoa.
+- Tim viec bang AI: Tim cong viec phu hop voi CV.
+- Danh gia CV: So sanh CV voi mo ta cong viec.
+- Xac minh chung nhan: Kiem tra credential va giai ma tai lieu duoc cap quyen.
+- Cong cap chung nhan: Chi danh cho vi issuer dang ky va dang active.
+- Quan tri don vi cap: Chi danh cho Registry Authority.
+
+Mot so menu chi hien khi vi da co profile, credential, quyen issuer hoac quyen
+Registry Authority tuong ung.
+
+4. TAO HO SO CA NHAN
+--------------------
+
+4.1. Tao profile
+
+1. Ket noi vi.
+2. Mo "Ho so cua toi".
+3. Neu hien thong bao "Vi nay chua co ho so", nhan "Tao ho so".
+4. Xem va xac nhan giao dich trong vi.
+5. Cho giao dich duoc xac nhan.
+
+Profile luu dia chi owner va cac bo dem resume/credential. Profile khong luu
+thong tin ca nhan chi tiet.
+
+Neu tao that bai:
+- Tu choi ky: mo lai thao tac va chap thuan ky.
+- Thieu SOL: nap them SOL cho phi va rent.
+- Profile da ton tai: tai lai trang.
+- Loi RPC/network: chon dung network va thu lai.
+
+4.2. Tao resume container
+
+1. Trong trang "Ho so cua toi", den muc "Tao CV".
+2. Nhan "Tao resume".
+3. Ky giao dich.
+4. Cho ung dung xac minh Resume PDA.
+
+Buoc nay chi tao container resume on-chain. Chua co file CV, hash hoac URI.
+Noi dung CV duoc them o buoc cong bo phien ban.
+
+4.3. Cong bo phien ban CV
+
+1. Chon resume muon cap nhat.
+2. Tai file CV dinh dang PDF hoac DOCX, toi da 10 MB.
+3. Tich vao o xac nhan rang file va URI co the cong khai.
+4. Nhan "Chuan bi phien ban".
+5. Cho ung dung tinh content hash, metadata hash va upload file.
+6. Kiem tra thong tin version, URI va hash duoc hien thi.
+7. Nhan "Ky va cong bo".
+8. Xac nhan giao dich trong vi.
+9. Cho giao dich duoc xac minh on-chain.
+
+Moi lan cong bo tao mot version moi, khong ghi de version cu. Hash dung de kiem
+tra file tai ve co dung voi file da cong bo hay khong.
+
+Neu version bi stale hoac xung dot, tai lai trang thai resume, chuan bi lai file
+va ky lai. Khong tu dong gui lai mot version da thay doi.
+
+4.4. Quan ly CV va credential
+
+Trong trang profile, nguoi dung co the:
+- Chon resume khac.
+- Xem version tiep theo.
+- Xem version da cong bo va hash.
+- Xem credential da nhan.
+- Nhan "Xac nhan" voi credential dang Active nhung chua duoc subject chap nhan.
+
+5. BAO MAT TAI LIEU VA ENCRYPTION IDENTITY
+-------------------------------------------
+
+Encryption identity la cap khoa ma hoa luu tren trinh duyet, tach biet voi khoa
+ky giao dich cua vi Solana.
+
+5.1. Tao encryption identity
+
+1. Mo "Bao mat tai lieu".
+2. Nhap passphrase toi thieu 8 ky tu.
+3. Nhap lai passphrase.
+4. Nhan nut tao thiet lap bao mat.
+5. Luu passphrase o noi an toan.
+
+Neu mat passphrase hoac xoa du lieu trinh duyet, ban co the khong giai ma duoc
+tai lieu da nhan.
+
+5.2. Dang ky public key
+
+1. Ket noi dung vi se dung de nhan/xac minh credential.
+2. Dam bao encryption identity da duoc tao.
+3. Nhap passphrase.
+4. Nhan "Dang ky public key".
+5. Neu can, xac nhan thao tac trong vi.
+6. Kiem tra trang thai Backend va On-chain.
+
+Public key co the chia se cho issuer. Khong chia se private key hoac passphrase.
+Issuer dung public key de ma hoa tai lieu cho nguoi nhan.
+
+5.3. Backup va khoi phuc
+
+- Nhan "Export backup" de tai file backup JSON.
+- Cat giu file backup o noi rieng tu, an toan.
+- Dung "Import backup" de khoi phuc tren trinh duyet moi.
+- Khong gui file backup cho nguoi khong duoc uy quyen.
+
+5.4. Xoay khoa
+
+1. Nhap passphrase hien tai.
+2. Nhan "Xoay khoa".
+3. Cho key version moi duoc tao.
+4. Kiem tra lai trang thai dang ky va cac grant dang hoat dong.
+
+Xoay khoa co the can cap nhat grant. Khong xoa identity cu neu van can giai ma
+tai lieu dang ton tai.
+
+6. NHAN VA QUAN LY CHUNG NHAN
+-----------------------------
+
+Credential duoc issuer cap cho subject wallet. Credential co the gom loai,
+claims, URI tai lieu, hash, thoi han va status.
+
+6.1. Xem credential
+
+1. Mo "Ho so cua toi".
+2. Cuon den muc "Chung nhan cua toi".
+3. Kiem tra:
+   - Ma credential.
+   - Don vi cap.
+   - Status: Dang hoat dong hoac Da thu hoi.
+   - Da duoc subject xac nhan hay chua.
+   - Thoi diem het han neu co.
+   - URI va cac hash.
+
+6.2. Chap nhan credential
+
+1. Dam bao credential dang Active.
+2. Nhan "Xac nhan".
+3. Ky giao dich bang subject wallet.
+4. Tai lai profile de kiem tra trang thai.
+
+Credential da bi revoke khong the chap nhan lai. Revoke la chuyen trang thai mot
+chieu tu Active sang Revoked.
+
+7. QUYEN TRUY CAP TAI LIEU
+--------------------------
+
+Mo trang "Quyen truy cap tai lieu" sau khi da ket noi vi va co credential.
+Chon credential tu danh sach de xem:
+
+- AccessGrant cho wallet verifier.
+- LinkGrant chia se theo link.
+- Trang thai, thoi han va so lan su dung.
+
+7.1. Wallet verifier access
+
+AccessGrant cho wallet verifier thuong duoc issuer tao tu dong khi cap
+credential. Subject co the xem trang thai grant. Quyen revoke phu thuoc vao
+grantor theo chinh sach on-chain; subject khong mac dinh co quyen thu hoi grant
+do issuer tao.
+
+7.2. Tao link chia se
+
+Chi dung khi can chia se co thoi han. Link co secret trong phan fragment cua URL.
+
+1. Chon credential.
+2. Nhap so ngay het han.
+3. Nhap so lan su dung toi da.
+4. Nhap Link Grant ID chua dung.
+5. Nhap wrapped document key dung dinh dang hex.
+6. Nhan "Create Link" va ky giao dich.
+7. Sao chep URL duoc tao va gui qua kenh an toan.
+
+Ai co URL va secret co the thu truy cap tai lieu trong pham vi grant. Khong dua
+link len noi cong khai.
+
+7.3. Thu hoi link
+
+1. Chon credential va nhap dung Link Grant ID.
+2. Nhan "Revoke Link".
+3. Xac nhan hop thoai.
+4. Ky giao dich.
+
+Ban sao link cu se ngung hoat dong sau khi giao dich thu hoi duoc xac nhan.
+
+8. XAC MINH CHUNG NHAN
+----------------------
+
+8.1. Xac minh bang wallet
+
+1. Ket noi wallet verifier.
+2. Mo "Xac minh chung nhan".
+3. Nhap dia chi credential.
+4. Nhap mat khau bao mat tai lieu/passphrase theo yeu cau hien thi.
+5. Chon hoac bo chon tuy chon "Chi chap nhan chung nhan da duoc nguoi nhan
+   xac nhan".
+6. Nhan "Xac minh chung nhan".
+7. Doc ket qua Verified/Failed va ly do neu that bai.
+8. Neu hop le, nhan "Tai tai lieu da xac minh".
+
+Qua trinh xac minh kiem tra quyen truy cap, credential status, issuer, thoi han,
+hash tai lieu va claims hash. File tai ve la ban sao tren thiet bi va khong the
+bi thu hoi tu xa.
+
+8.2. Xac minh bang link chia se
+
+1. Mo URL chia se day du, bao gom phan sau dau #.
+2. Kiem tra link con Active, chua het han va chua vuot max uses.
+3. Ket noi wallet khi san sang consume link. Wallet chu yeu tra phi giao dich.
+4. Nhan "Consume and verify".
+5. Cho giao dich va cac buoc kiem tra hash hoan tat.
+6. Tai file neu hien thi ket qua Credential verified.
+
+Neu thieu phan secret trong URL, link da revoke, het han hoac het luot dung,
+khong the xac minh.
+
+9. DICH VU AI
+-------------
+
+9.1. Danh gia CV
+
+1. Mo "Danh gia CV".
+2. Ket noi vi Solana co kha nang ky giao dich.
+3. Tai CV PDF hoac DOCX.
+4. Chon mot trong hai cach cung cap JD:
+   - Dan van ban mo ta cong viec.
+   - Tai file JD PDF hoac DOCX.
+5. Nhan "Danh gia".
+6. Neu duoc yeu cau, xac nhan thanh toan x402 trong vi.
+7. Cho AI phan tich va xem ket qua tai trang ket qua.
+
+Khong the gui neu thieu CV, thieu JD hoac wallet chua ket noi. Hay kiem tra ky
+thong tin truoc khi ky thanh toan.
+
+9.2. Tim viec bang AI
+
+1. Mo "Tim viec bang AI".
+2. Tai CV PDF hoac DOCX, toi da 10 MB.
+3. Nhap vi tri mong muon neu co.
+4. Nhap dia diem mong muon neu co.
+5. Chon hinh thuc Remote, Hybrid, On-site hoac tat ca.
+6. Dieu chinh diem phu hop toi thieu.
+7. Nhan "Tim viec phu hop".
+8. Xac nhan thanh toan neu he thong yeu cau.
+9. Cho qua trinh AI hoan tat va xem danh sach cong viec.
+10. Nhan "Xem cong viec" de mo tin tuyen dung.
+
+Ket qua gom diem phu hop, cong ty, dia diem, muc luong, ly do phu hop, ky nang
+da khop va ky nang con thieu.
+
+10. HUONG DAN CHO ISSUER
+------------------------
+
+Issuer la vi duoc Registry Authority phe duyet va dang active.
+
+10.1. Dieu kien
+
+- Vi phai duoc dang ky trong issuer registry.
+- Trang thai issuer phai la ACTIVE.
+- Subject phai co profile.
+- Issuer phai co encryption identity/public key can thiet de ma hoa tai lieu.
+
+10.2. Cap credential
+
+1. Mo "Cong cap chung nhan".
+2. Ket noi dung issuer wallet.
+3. Nhap public key subject.
+4. Nhan thao tac tra cuu subject va dam bao subject co profile.
+5. Nhap cac claims theo cap key/value.
+6. Nhap credential type.
+7. Tai tai lieu credential dang PDF.
+8. Neu can, bat expiry va chon ngay het han trong tuong lai.
+9. Kiem tra preview hash.
+10. Nhan thao tac cap credential.
+11. Ma hoa, upload goi credential va ky giao dich.
+12. He thong tao grant cho subject; tuy chon tao them link chia se.
+13. Kiem tra credential moi trong danh sach issuer.
+
+Credential document phai la PDF. Khong dung URI qua dai gioi han on-chain.
+
+10.3. Thu hoi credential
+
+1. Trong danh sach credential da cap, chon credential can thu hoi.
+2. Nhan "Revoke".
+3. Ky giao dich.
+4. Xac nhan status chuyen sang Revoked.
+
+Chi issuer goc da cap credential moi co quyen thu hoi credential do.
+
+11. HUONG DAN CHO REGISTRY AUTHORITY
+------------------------------------
+
+Registry Authority la vi quan tri danh sach issuer.
+
+11.1. Khoi tao registry
+
+1. Mo "Quan tri don vi cap".
+2. Ket noi vi muon lam authority.
+3. Neu registry chua ton tai, nhan "Khoi tao registry".
+4. Ky giao dich.
+
+Wallet dau tien khoi tao se tro thanh authority. Hay thuc hien can than vi quyen
+nay la goc tin cay cua danh sach issuer.
+
+11.2. Dang ky issuer
+
+1. Nhap public key cua issuer.
+2. Chon loai issuer:
+   - 1: Truong dai hoc.
+   - 2: Doanh nghiep.
+   - 3: To chuc chung nhan.
+   - 4: Co quan nha nuoc.
+   - 5: Hiep hoi nghe nghiep.
+3. Nhan tra cuu de kiem tra issuer.
+4. Nhan dang ky issuer.
+5. Ky giao dich.
+
+Issuer khong can tu ky giao dich dang ky; authority la nguoi phe duyet.
+
+11.3. Bat/tat issuer
+
+1. Tra cuu issuer.
+2. Kiem tra status hien tai.
+3. Nhan nut bat hoac tam dung.
+4. Ky giao dich.
+
+Issuer INACTIVE khong duoc cap credential moi. Theo chinh sach hien tai, issuer
+van co the thu hoi credential do minh da cap.
+
+12. XU LY LOI THUONG GAP
+------------------------
+
+12.1. Khong ket noi duoc vi
+
+- Mo khoa extension vi.
+- Kiem tra vi co ho tro Wallet Standard.
+- Tai lai trang va ket noi lai.
+- Kiem tra dung network.
+
+12.2. Tu choi ky giao dich
+
+Day khong nhat thiet la loi ung dung. Mo lai thao tac, doc ky noi dung giao dich
+va chap thuan trong vi neu ban chac chan.
+
+12.3. Khong du SOL
+
+Nap SOL dung network. Can du ca phi giao dich va rent tao account. Khong thu lai
+nhieu lan lien tuc khi chua bo sung so du.
+
+12.4. Loi RPC, blockhash, khong tim thay program
+
+- Kiem tra network cua vi va ung dung.
+- Tai lai trang de lay blockhash moi.
+- Kiem tra RPC dang hoat dong.
+- Thu lai sau mot khoang thoi gian ngan.
+
+12.5. Profile/resume bi trung hoac xung dot
+
+Tai lai du lieu on-chain bang nut thu lai/trang tai lai. Khong tu nhap resume ID
+khac; ID duoc cap tuan tu theo profile.
+
+12.6. Upload that bai
+
+- Kiem tra dinh dang PDF/DOCX theo tung chuc nang.
+- Kiem tra kich thuoc file.
+- Kiem tra ket noi mang va storage.
+- Chon lai file va thuc hien lai buoc chuan bi.
+
+12.7. Khong giai ma duoc credential
+
+- Kiem tra dang dung dung trinh duyet/identity.
+- Nhap dung passphrase.
+- Kiem tra public key va key version da dang ky.
+- Khong xoa local storage neu van can tai lieu.
+- Neu da xoay khoa, kiem tra grant co duoc cap nhat hay chua.
+
+12.8. Link chia se khong hoat dong
+
+Kiem tra:
+- URL co con phan #secret hay khong.
+- Link co bi revoke khong.
+- Link co het han khong.
+- So lan su dung co vuot max uses khong.
+- Link Grant ID va credential address co dung khong.
+- Wallet da ket noi de consume va tra phi chua.
+
+12.9. Xac minh that bai
+
+Ly do co the gom credential bi revoke, issuer khong active, credential het han,
+subject chua chap nhan, khong co grant, sai passphrase, sai link, document hash
+khong khop hoac claims hash khong khop. Doc message chi tiet tren man hinh va
+khong bo qua canh bao integrity.
+
+13. NGUYEN TAC AN TOAN
+----------------------
+
+- Chi ky giao dich ban hieu ro va dung vi.
+- Khong cung cap seed phrase/private key cho bat ky ai.
+- Khong dua passphrase ma hoa vao form khong ro nguon goc.
+- Luu backup identity o noi an toan, ma hoa neu co the.
+- Khong cong khai share link co secret.
+- Khong upload thong tin nhay cam vao CV public.
+- Kiem tra issuer, status, expiry va hash truoc khi tin credential.
+- Nho rang hash chi chung minh file/claims khong bi thay doi; khong tu dong
+  chung minh noi dung la su that.
+- File da tai ve may khong the bi thu hoi tu xa.
+- Kiem tra lai dia chi vi va network truoc moi thao tac co phi.
+
+14. TOM TAT LUONG SU DUNG KHUYEN NGHI
+--------------------------------------
+
+Nguoi dung ca nhan:
+1. Cai va mo vi Solana.
+2. Ket noi vi, chon dung network va nap du SOL.
+3. Tao profile.
+4. Tao resume.
+5. Upload va cong bo version CV.
+6. Tao encryption identity va backup.
+7. Dang ky public key neu can nhan credential ma hoa.
+8. Chap nhan credential khi nhan duoc.
+9. Quan ly grant/link chia se.
+10. Dung AI danh gia CV va tim viec khi can.
+
+Recruiter/verifier:
+1. Ket noi wallet verifier.
+2. Mo Xac minh chung nhan.
+3. Nhap credential address va thong tin bao mat.
+4. Kiem tra ket qua Verified, issuer, status, expiry va hash.
+5. Chi tai file sau khi ket qua hop le.
+
+Issuer:
+1. Duoc Registry Authority dang ky.
+2. Tao encryption identity/public key.
+3. Tra cuu subject co profile.
+4. Ma hoa va cap credential.
+5. Quan ly grant.
+6. Thu hoi credential neu can.
+
+Registry Authority:
+1. Khoi tao registry.
+2. Dang ky issuer tin cay.
+3. Tam dung/kich hoat issuer theo chinh sach.
+
+15. THONG TIN KY THUAT THAM KHAO
+---------------------------------
+
+- Program ID ResuMate: 8SVXDqsBg2qQGxddweHmkG8rehnAzRx6uesjrv8TcR63
+- Route profile: /profile
+- Route encryption setup: /encryption-setup
+- Route subject grants: /subject-grants
+- Route verify: /verify
+- Route link verify: /verify/link/[credentialAddress]/[grantId]
+- Route issuer: /issuer
+- Route issuer registry: /issuer-registry
+- Route AI evaluation: /evaluate
+- Route AI job matching: /jobs
+
+Tai lieu nay mo ta giao dien va luong chuc nang hien tai. Neu giao dien hien thi
+thong bao moi hon tai thoi diem su dung, uu tien thong bao tren ung dung va yeu
+cau ky trong vi.

@@ -42,10 +42,25 @@ function sanitizeMessage(message: string): string {
   return message
 }
 
+function errorDetails(error: unknown): string {
+  if (!error || typeof error !== 'object') return ''
+  const cause = 'cause' in error ? error.cause : null
+  if (!cause || typeof cause !== 'object') return ''
+
+  const details: string[] = []
+  if ('logs' in cause && Array.isArray(cause.logs)) {
+    details.push(...cause.logs.filter((log): log is string => typeof log === 'string'))
+  }
+  if ('err' in cause && cause.err != null) details.push(String(cause.err))
+  return details.join(' ')
+}
+
 export function classifyError(error: unknown): { category: ErrorCategory; message: string } {
   const raw = error instanceof Error ? error.message : String(error)
-  const lower = raw.toLowerCase()
-  const safe = sanitizeMessage(raw)
+  const details = errorDetails(error)
+  const searchable = `${raw} ${details}`
+  const lower = searchable.toLowerCase()
+  const safe = sanitizeMessage(details || raw)
 
   if (lower.includes('reject') || lower.includes('cancel') || lower.includes('declin')) {
     return { category: 'user_rejected', message: 'Bạn đã từ chối ký giao dịch. Hãy thử lại khi sẵn sàng.' }
@@ -73,6 +88,9 @@ export function classifyError(error: unknown): { category: ErrorCategory; messag
   }
   if (lower.includes('exhausted') || lower.includes('max_uses') || lower.includes('max uses')) {
     return { category: 'grant_exhausted', message: 'Quyền truy cập đã hết lượt sử dụng.' }
+  }
+  if (lower.includes('accountnotfound') || lower.includes('incorrectprogramid') || lower.includes('unknown program')) {
+    return { category: 'rpc_failure', message: 'Program on-chain không khớp với cấu hình ứng dụng. Hãy kiểm tra đúng cluster và program ID.' }
   }
   if (lower.includes('network') || lower.includes('rpc') || lower.includes('blockhash') || lower.includes('fetch')) {
     return { category: 'rpc_failure', message: 'Không thể kết nối mạng Solana. Kiểm tra RPC rồi thử lại.' }

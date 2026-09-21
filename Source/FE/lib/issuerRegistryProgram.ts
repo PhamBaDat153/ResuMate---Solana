@@ -9,7 +9,6 @@ import {
   type Instruction,
 } from '@solana/kit'
 import type { SolanaWalletClient } from '@/components/solana-provider'
-
 export const RESUME_PROGRAM_ID = address('8SVXDqsBg2qQGxddweHmkG8rehnAzRx6uesjrv8TcR63')
 const REGISTRY_SEED = new TextEncoder().encode('issuer-registry')
 const ISSUER_SEED = new TextEncoder().encode('issuer')

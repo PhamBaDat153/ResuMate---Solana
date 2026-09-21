@@ -4,6 +4,7 @@ import {
   createAccessGrantInstruction,
   createLinkGrantInstruction,
   decodeAccessGrantAccount,
+  decodeLinkGrantAccount,
   deriveAccessGrantAddress,
   deriveLinkGrantAddress,
   fetchAccessGrantByAddress,
@@ -195,6 +196,56 @@ describe('decodeAccessGrantAccount', () => {
     const result = decodeAccessGrantAccount(CREDENTIAL, { programAddress: RESUME_PROGRAM_ID, data: extended })
     expect(result).toBeNull()
   })
+})
+
+function buildLinkGrantBytes(overrides: { statusByte?: number; keyLen?: number; trailing?: boolean } = {}): Uint8Array {
+  const keyLen = overrides.keyLen ?? 3
+  const baseLen = 8 + 32 + 32 + 32 + 4 + keyLen + 8 + 8 + 4 + 4 + 1 + 1
+  const data = new Uint8Array(baseLen + (overrides.trailing ? 1 : 0))
+  const view = new DataView(data.buffer)
+  let offset = 0
+  data.set(new Uint8Array([71, 145, 10, 238, 116, 168, 160, 52]), offset); offset += 8
+  data.fill(1, offset, offset + 32); offset += 32
+  data.fill(2, offset, offset + 32); offset += 32
+  data.fill(7, offset, offset + 32); offset += 32
+  view.setUint32(offset, keyLen, true); offset += 4
+  data.fill(9, offset, offset + keyLen); offset += keyLen
+  view.setBigInt64(offset, BigInt(1700000000), true); offset += 8
+  view.setBigInt64(offset, BigInt(4000000000), true); offset += 8
+  view.setUint32(offset, 1, true); offset += 4
+  view.setUint32(offset, 3, true); offset += 4
+  data[offset++] = overrides.statusByte ?? 0
+  data[offset] = 255
+  return data
+}
+
+describe('decodeLinkGrantAccount', () => {
+  it('decodes active, expired, and use-limited fields', () => {
+    const result = decodeLinkGrantAccount(CREDENTIAL, { programAddress: RESUME_PROGRAM_ID, data: buildLinkGrantBytes() })
+    expect(result).not.toBeNull()
+    expect(result!.status).toBe('Active')
+    expect(result!.useCount).toBe(1)
+    expect(result!.maxUses).toBe(3)
+    expect(result!.expiresAt).toBe(BigInt(4000000000))
+  })
+
+  const malformedCases: Array<[string, (data: Uint8Array) => Uint8Array]> = [
+    ['wrong discriminator', (data) => { data[0] = 0; return data }],
+    ['wrong owner', (data) => data],
+    ['invalid status', (data) => { data[data.length - 2] = 9; return data }],
+    ['truncated', (data) => data.slice(0, 20)],
+    ['oversized key', () => buildLinkGrantBytes({ keyLen: 513 })],
+    ['trailing bytes', () => buildLinkGrantBytes({ trailing: true })],
+  ]
+  for (const [name, mutate] of malformedCases) {
+    it(`rejects ${name} account data`, () => {
+      const result = decodeLinkGrantAccount(CREDENTIAL, {
+        programAddress: name === 'wrong owner' ? OWNER : RESUME_PROGRAM_ID,
+        data: mutate(buildLinkGrantBytes()),
+      })
+      expect(result).toBeNull()
+    })
+  }
 })
 
 function encodeBase64(bytes: Uint8Array): string {

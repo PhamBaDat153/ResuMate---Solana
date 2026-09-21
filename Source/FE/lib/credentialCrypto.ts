@@ -77,6 +77,33 @@ export async function importAesKey(raw: Uint8Array): Promise<CryptoKey> {
   return crypto.subtle.importKey('raw', toArrayBuffer(raw), { name: 'AES-GCM' }, false, ['decrypt'])
 }
 
+// LinkGrant envelope: version byte, 12-byte IV, then AES-GCM(raw document key).
+// The secret stays in the URL fragment and is never sent to the backend.
+export async function wrapAesKeyWithSecret(aesKey: CryptoKey, secret: Uint8Array): Promise<Uint8Array> {
+  if (secret.length !== 32) throw new Error('Link secret must be 32 bytes.')
+  const rawKey = await exportAesKey(aesKey)
+  const wrappingKey = await crypto.subtle.importKey('raw', toArrayBuffer(secret), { name: 'AES-GCM' }, false, ['encrypt'])
+  const iv = crypto.getRandomValues(new Uint8Array(12))
+  const ciphertext = new Uint8Array(await crypto.subtle.encrypt({ name: 'AES-GCM', iv: toArrayBuffer(iv) }, wrappingKey, toArrayBuffer(rawKey)))
+  const envelope = new Uint8Array(1 + iv.length + ciphertext.length)
+  envelope[0] = 1
+  envelope.set(iv, 1)
+  envelope.set(ciphertext, 1 + iv.length)
+  return envelope
+}
+
+export async function unwrapAesKeyWithSecret(envelope: Uint8Array, secret: Uint8Array): Promise<CryptoKey> {
+  if (secret.length !== 32) throw new Error('Link secret must be 32 bytes.')
+  if (envelope.length < 1 + 12 + 16 || envelope[0] !== 1) throw new Error('Invalid LinkGrant key envelope.')
+  const wrappingKey = await crypto.subtle.importKey('raw', toArrayBuffer(secret), { name: 'AES-GCM' }, false, ['decrypt'])
+  const rawKey = await crypto.subtle.decrypt(
+    { name: 'AES-GCM', iv: toArrayBuffer(envelope.slice(1, 13)) },
+    wrappingKey,
+    toArrayBuffer(envelope.slice(13)),
+  )
+  return importAesKey(new Uint8Array(rawKey))
+}
+
 export async function generateEncryptionIdentity(): Promise<{ publicKey: CryptoKey; privateKey: CryptoKey }> {
   const pair = await crypto.subtle.generateKey(
     { name: 'RSA-OAEP', modulusLength: 4096, publicExponent: new Uint8Array([1, 0, 1]), hash: 'SHA-256' },

@@ -261,7 +261,9 @@ function decodeBase64(value: string): Uint8Array {
 }
 
 export const ACCESS_GRANT_DISCRIMINATOR = new Uint8Array([167, 55, 184, 237, 74, 242, 0, 109])
+export const LINK_GRANT_DISCRIMINATOR = new Uint8Array([71, 145, 10, 238, 116, 168, 160, 52])
 export const ACCESS_GRANT_MIN_SIZE = 8 + 32 + 32 + 32 + 4 + 4 + 8 + 1 + 1 + 1
+export const LINK_GRANT_MIN_SIZE = 8 + 32 + 32 + 32 + 4 + 8 + 8 + 4 + 4 + 1 + 1
 export const MAX_WRAPPED_KEY_LEN = 512
 
 export function decodeAccessGrantAccount(addr: Address, account: EncodedProgramAccount): AccessGrantAccount | null {
@@ -293,6 +295,34 @@ export function decodeAccessGrantAccount(addr: Address, account: EncodedProgramA
     const bump = data[offset]; offset += 1
     if (offset !== data.length) return null
     return { address: addr, credential, grantor, recipient, recipientKeyVersion, wrappedDocumentKey, createdAt, expiresAt, status, bump }
+  } catch {
+    return null
+  }
+}
+
+export function decodeLinkGrantAccount(addr: Address, account: EncodedProgramAccount): LinkGrantAccount | null {
+  const data = account.data
+  if (account.programAddress !== RESUME_PROGRAM_ID || data.length < LINK_GRANT_MIN_SIZE || !sameBytes(data.slice(0, 8), LINK_GRANT_DISCRIMINATOR)) {
+    return null
+  }
+  try {
+    let offset = 8
+    const credential = getAddressDecoder().decode(data.slice(offset, offset + 32)); offset += 32
+    const grantor = getAddressDecoder().decode(data.slice(offset, offset + 32)); offset += 32
+    const secretHash = data.slice(offset, offset + 32); offset += 32
+    const keyLen = readU32(data, offset); offset += 4
+    if (keyLen > MAX_WRAPPED_KEY_LEN || offset + keyLen > data.length) return null
+    const wrappedDocumentKey = data.slice(offset, offset + keyLen); offset += keyLen
+    const createdAt = readI64(data, offset); offset += 8
+    const expiresAt = readI64(data, offset); offset += 8
+    const useCount = readU32(data, offset); offset += 4
+    const maxUses = readU32(data, offset); offset += 4
+    if (offset + 2 > data.length) return null
+    const statusByte = data[offset]; offset += 1
+    const status: GrantStatus = statusByte === 0 ? 'Active' : statusByte === 1 ? 'Revoked' : (() => { throw new Error() })()
+    const bump = data[offset]; offset += 1
+    if (offset !== data.length) return null
+    return { address: addr, credential, grantor, secretHash, wrappedDocumentKey, createdAt, expiresAt, useCount, maxUses, status, bump }
   } catch {
     return null
   }
@@ -334,6 +364,46 @@ export async function fetchAccessGrantsForCredential(
     try {
       const bytes = decodeBase64(data)
       const decoded = decodeAccessGrantAccount(account.pubkey, { programAddress: RESUME_PROGRAM_ID, data: bytes })
+      return decoded ? [decoded] : []
+    } catch {
+      return []
+    }
+  })
+}
+
+export async function fetchLinkGrantByAddress(client: SolanaWalletClient, grantAddress: Address): Promise<LinkGrantAccount | null> {
+  const account = await fetchEncodedAccount(client.rpc, grantAddress, { commitment: 'confirmed' })
+  if (!account.exists) return null
+  return decodeLinkGrantAccount(grantAddress, account)
+}
+
+export async function fetchLinkGrantForCredential(
+  client: SolanaWalletClient,
+  credential: Address,
+  linkGrantId: bigint,
+): Promise<LinkGrantAccount | null> {
+  const pda = await deriveLinkGrantAddress(credential, linkGrantId)
+  return fetchLinkGrantByAddress(client, pda)
+}
+
+export async function fetchLinkGrantsForCredential(
+  client: SolanaWalletClient,
+  credential: Address,
+): Promise<LinkGrantAccount[]> {
+  const credentialBytes = new Uint8Array(getAddressEncoder().encode(credential))
+  const accounts = await client.rpc.getProgramAccounts(RESUME_PROGRAM_ID, {
+    encoding: 'base64',
+    commitment: 'confirmed',
+    filters: [
+      { memcmp: { offset: BigInt(0), bytes: encodeBase64(LINK_GRANT_DISCRIMINATOR) as never, encoding: 'base64' as const } },
+      { memcmp: { offset: BigInt(8), bytes: encodeBase64(credentialBytes) as never, encoding: 'base64' as const } },
+    ],
+  })
+  return (await accounts.send()).flatMap((account) => {
+    const data = account.account.data[0]
+    if (typeof data !== 'string') return []
+    try {
+      const decoded = decodeLinkGrantAccount(account.pubkey, { programAddress: RESUME_PROGRAM_ID, data: decodeBase64(data) })
       return decoded ? [decoded] : []
     } catch {
       return []

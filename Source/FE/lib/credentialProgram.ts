@@ -270,7 +270,11 @@ export async function revokeCredential(
 }
 
 export function getCredentialError(error: unknown): string {
-  const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase()
+  const cause = error && typeof error === 'object' && 'cause' in error ? error.cause : null
+  const logs = cause && typeof cause === 'object' && 'logs' in cause && Array.isArray(cause.logs)
+    ? cause.logs.filter((log): log is string => typeof log === 'string').join(' ')
+    : ''
+  const message = `${error instanceof Error ? error.message : String(error)} ${logs}`.toLowerCase()
   if (message.includes('reject') || message.includes('cancel') || message.includes('declin')) {
     return 'Bạn đã từ chối ký giao dịch.'
   }
@@ -282,6 +286,9 @@ export function getCredentialError(error: unknown): string {
   }
   if (message.includes('unauthorized') || message.includes('inactive')) {
     return 'Wallet không có quyền thực hiện hành động này hoặc issuer chưa active.'
+  }
+  if (message.includes('incorrectprogramid') || message.includes('unknown program') || message.includes('accountnotfound')) {
+    return 'Program on-chain không khớp với cấu hình ứng dụng. Hãy kiểm tra đúng cluster và program ID.'
   }
   if (message.includes('revoked')) {
     return 'Credential đã bị thu hồi.'

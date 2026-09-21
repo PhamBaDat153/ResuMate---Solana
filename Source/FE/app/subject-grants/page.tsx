@@ -12,6 +12,8 @@ import {
   createLinkGrant,
   revokeLinkGrant,
   fetchAccessGrantsForCredential,
+  fetchLinkGrantsForCredential,
+  type LinkGrantAccount,
   type AccessGrantAccount,
 } from '@/lib/grantProgram'
 import { OperationFeedback } from '@/components/operation-feedback'
@@ -49,6 +51,7 @@ export default function SubjectGrantsPage() {
   const [actionError, setActionError] = useState<string | null>(null)
   const [operation, setOperation] = useState<OperationState>(createIdleState('quản lý quyền truy cập'))
   const [accessGrants, setAccessGrants] = useState<AccessGrantAccount[]>([])
+  const [linkGrants, setLinkGrants] = useState<LinkGrantAccount[]>([])
   const [grantState, setGrantState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const [now] = useState(() => Math.floor(Date.now() / 1000))
 
@@ -56,6 +59,9 @@ export default function SubjectGrantsPage() {
   const [linkMaxUses, setLinkMaxUses] = useState('10')
   const [linkGrantId, setLinkGrantId] = useState('0')
   const [linkWrappedKeyHex, setLinkWrappedKeyHex] = useState('')
+  const [shareUrl, setShareUrl] = useState<string | null>(null)
+  const [shareVisible, setShareVisible] = useState(false)
+  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
 
   const loadCredentials = useCallback(async () => {
     if (!connectedWallet) {
@@ -91,6 +97,7 @@ export default function SubjectGrantsPage() {
     setGrantState('loading')
     try {
       setAccessGrants(await fetchAccessGrantsForCredential(client, address(selectedCredential) as Address))
+      setLinkGrants(await fetchLinkGrantsForCredential(client, address(selectedCredential) as Address))
       setGrantState('ready')
     } catch (e) {
       setGrantState('error')
@@ -126,14 +133,13 @@ export default function SubjectGrantsPage() {
       if (wrappedKey.length === 0 || wrappedKey.length > 512) throw new Error('Enter a valid wrapped document key (1-512 bytes).')
       await createLinkGrant(client, grantor, credentialAddr, lgid, secretHash, wrappedKey, expiresAt, maxUses)
       const secretHex = Array.from(secretBytes).map((b) => b.toString(16).padStart(2, '0')).join('')
+      const url = `${window.location.origin}/verify/link/${credentialAddr}/${lgid}#secret=${secretHex}`
+      setShareUrl(url)
+      setShareVisible(true)
+      setCopyState('idle')
       setActionState('idle')
-      toast.success('Link đã tạo', {
-        description: `Secret: ${secretHex.slice(0, 16)}… — copy full secret from console or share carefully.`,
-        duration: 12000,
-      })
-      // Keep full secret visible via toast + console for operator workflow
-      console.info('ResuMate link grant secret:', secretHex)
-      toast.message('Link secret (full)', { description: secretHex, duration: 20000 })
+      await loadAccessGrants()
+      toast.success('Link đã tạo')
     } catch (e) {
       const message = e instanceof Error ? e.message : 'Failed to create link.'
       setActionState('error')
@@ -144,6 +150,7 @@ export default function SubjectGrantsPage() {
 
   async function handleRevokeLink() {
     if (!connectedWallet?.signer || !selectedCredential) return
+    if (!window.confirm('Revoke this share link? Existing copies will stop working.')) return
     setActionState('revoking')
     setActionError(null)
     try {
@@ -151,6 +158,7 @@ export default function SubjectGrantsPage() {
       const credentialAddr = address(selectedCredential) as Address
       const lgid = BigInt(linkGrantId)
       await revokeLinkGrant(client, grantor, credentialAddr, lgid)
+      await loadAccessGrants()
       setActionState('idle')
       toast.success('Đã thu hồi link')
     } catch (e) {
@@ -357,6 +365,42 @@ export default function SubjectGrantsPage() {
                         </div>
                       )
                     })}
+                  </section>
+                )}
+
+                {selectedCredential && (
+                  <section className="space-y-3 rounded-xl border border-border/80 bg-secondary/20 p-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <div>
+                        <h2 className="font-semibold">Share links</h2>
+                        <p className="text-xs text-muted-foreground">Link hiện tại theo credential. Đây không phải audit timeline.</p>
+                      </div>
+                      <Button type="button" variant="outline" size="sm" onClick={() => void loadAccessGrants()} disabled={grantState === 'loading'}>Làm mới</Button>
+                    </div>
+                    {grantState === 'ready' && linkGrants.length === 0 && <p className="text-sm text-muted-foreground">Chưa có share link.</p>}
+                    {linkGrants.map((grant) => {
+                      const expired = grant.expiresAt <= BigInt(now)
+                      const exhausted = grant.maxUses > 0 && grant.useCount >= grant.maxUses
+                      return <div key={grant.address} className="rounded-lg border border-border bg-card p-3 text-sm">
+                        <p className="font-medium">{grant.status === 'Revoked' ? 'Revoked' : exhausted ? 'Exhausted' : expired ? 'Expired' : 'Active'}</p>
+                        <p className="text-xs text-muted-foreground">Uses: {grant.useCount}/{grant.maxUses === 0 ? 'unlimited' : grant.maxUses}</p>
+                        <p className="text-xs text-muted-foreground">Expires: {new Date(Number(grant.expiresAt) * 1000).toLocaleString()}</p>
+                      </div>
+                    })}
+                  </section>
+                )}
+
+                {shareVisible && shareUrl && (
+                  <section className="space-y-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4" role="status">
+                    <p className="font-medium">Link nhạy cảm, chỉ hiển thị một lần</p>
+                    <p className="text-xs text-muted-foreground">Secret nằm trong URL fragment và không được gửi lên server. Chỉ chia sẻ với người nhận dự kiến.</p>
+                    <p className="break-all rounded-lg border border-border bg-card p-3 font-mono text-xs">{shareUrl}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" onClick={() => void navigator.clipboard.writeText(shareUrl).then(() => setCopyState('copied')).catch(() => setCopyState('error'))}>Copy link</Button>
+                      <Button type="button" variant="outline" onClick={() => { setShareVisible(false); setShareUrl(null) }}>Ẩn link</Button>
+                    </div>
+                    {copyState === 'copied' && <p className="text-sm text-primary">Đã copy link.</p>}
+                    {copyState === 'error' && <p className="text-sm text-destructive">Không thể copy. Hãy dùng nút copy của trình duyệt.</p>}
                   </section>
                 )}
 
