@@ -4,20 +4,14 @@ import { useCallback, useEffect, useState } from 'react'
 import { address, type Address } from '@solana/kit'
 import { useClient } from '@solana/react'
 import { useConnect, useConnectedWallet, useDisconnect, useWallets } from '@solana/kit-plugin-wallet/react'
-import { toast } from 'sonner'
 import type { SolanaWalletClient } from '@/components/solana-provider'
 import { fetchProfile } from '@/lib/profileProgram'
 import { fetchProfileCredentials, type CredentialAccount } from '@/lib/credentialProgram'
 import {
-  createLinkGrant,
-  revokeLinkGrant,
   fetchAccessGrantsForCredential,
-  fetchLinkGrantsForCredential,
-  type LinkGrantAccount,
   type AccessGrantAccount,
 } from '@/lib/grantProgram'
 import { OperationFeedback } from '@/components/operation-feedback'
-import { validateWrappedDocumentKey } from '@/lib/issuerGrant'
 import {
   createErrorState,
   createIdleState,
@@ -26,12 +20,9 @@ import {
 import { PageHeader } from '@/components/page-header'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
+import { Card, CardContent } from '@/components/ui/card'
 
 type PageState = 'idle' | 'loading' | 'ready' | 'error'
-type GrantAction = 'idle' | 'granting' | 'revoking' | 'linking' | 'error'
-
 const selectClass =
   'mt-2 flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring'
 
@@ -47,21 +38,10 @@ export default function SubjectGrantsPage() {
   const [selectedCredential, setSelectedCredential] = useState<string>('')
   const [pageError, setPageError] = useState<string | null>(null)
 
-  const [actionState, setActionState] = useState<GrantAction>('idle')
-  const [actionError, setActionError] = useState<string | null>(null)
   const [operation, setOperation] = useState<OperationState>(createIdleState('quản lý quyền truy cập'))
   const [accessGrants, setAccessGrants] = useState<AccessGrantAccount[]>([])
-  const [linkGrants, setLinkGrants] = useState<LinkGrantAccount[]>([])
   const [grantState, setGrantState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const [now] = useState(() => Math.floor(Date.now() / 1000))
-
-  const [linkExpiryDays, setLinkExpiryDays] = useState('7')
-  const [linkMaxUses, setLinkMaxUses] = useState('10')
-  const [linkGrantId, setLinkGrantId] = useState('0')
-  const [linkWrappedKeyHex, setLinkWrappedKeyHex] = useState('')
-  const [shareUrl, setShareUrl] = useState<string | null>(null)
-  const [shareVisible, setShareVisible] = useState(false)
-  const [copyState, setCopyState] = useState<'idle' | 'copied' | 'error'>('idle')
 
   const loadCredentials = useCallback(async () => {
     if (!connectedWallet) {
@@ -97,7 +77,6 @@ export default function SubjectGrantsPage() {
     setGrantState('loading')
     try {
       setAccessGrants(await fetchAccessGrantsForCredential(client, address(selectedCredential) as Address))
-      setLinkGrants(await fetchLinkGrantsForCredential(client, address(selectedCredential) as Address))
       setGrantState('ready')
     } catch (e) {
       setGrantState('error')
@@ -115,60 +94,6 @@ export default function SubjectGrantsPage() {
     return () => window.clearTimeout(refresh)
   }, [loadAccessGrants])
 
-  async function handleCreateLink() {
-    if (!connectedWallet?.signer || !selectedCredential) return
-    setActionState('linking')
-    setActionError(null)
-    try {
-      const grantor = address(connectedWallet.account.address) as Address
-      const credentialAddr = address(selectedCredential) as Address
-      const lgid = BigInt(linkGrantId)
-      const secretBytes = crypto.getRandomValues(new Uint8Array(32))
-      const secretHash = new Uint8Array(await crypto.subtle.digest('SHA-256', secretBytes))
-      const days = parseInt(linkExpiryDays) || 7
-      const expiresAt = BigInt(Math.floor(Date.now() / 1000) + days * 86400)
-      const maxUses = parseInt(linkMaxUses) || 10
-      const wrappedKey = parseHex(linkWrappedKeyHex)
-      validateWrappedDocumentKey(wrappedKey)
-      if (wrappedKey.length === 0 || wrappedKey.length > 512) throw new Error('Enter a valid wrapped document key (1-512 bytes).')
-      await createLinkGrant(client, grantor, credentialAddr, lgid, secretHash, wrappedKey, expiresAt, maxUses)
-      const secretHex = Array.from(secretBytes).map((b) => b.toString(16).padStart(2, '0')).join('')
-      const url = `${window.location.origin}/verify/link/${credentialAddr}/${lgid}#secret=${secretHex}`
-      setShareUrl(url)
-      setShareVisible(true)
-      setCopyState('idle')
-      setActionState('idle')
-      await loadAccessGrants()
-      toast.success('Link đã tạo')
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Failed to create link.'
-      setActionState('error')
-      setActionError(message)
-      toast.error('Tạo link thất bại', { description: message })
-    }
-  }
-
-  async function handleRevokeLink() {
-    if (!connectedWallet?.signer || !selectedCredential) return
-    if (!window.confirm('Revoke this share link? Existing copies will stop working.')) return
-    setActionState('revoking')
-    setActionError(null)
-    try {
-      const grantor = address(connectedWallet.account.address) as Address
-      const credentialAddr = address(selectedCredential) as Address
-      const lgid = BigInt(linkGrantId)
-      await revokeLinkGrant(client, grantor, credentialAddr, lgid)
-      await loadAccessGrants()
-      setActionState('idle')
-      toast.success('Đã thu hồi link')
-    } catch (e) {
-      const message = e instanceof Error ? e.message : 'Failed to revoke link.'
-      setActionState('error')
-      setActionError(message)
-      toast.error('Thu hồi link thất bại', { description: message })
-    }
-  }
-
   const activeCred = credentials.find((c) => c.address === selectedCredential)
 
   return (
@@ -176,7 +101,7 @@ export default function SubjectGrantsPage() {
       <PageHeader
         eyebrow="Chứng nhận của tôi"
         title="Quyền truy cập tài liệu"
-        description="Quản lý ai có thể xem tài liệu chứng nhận của bạn. Bạn có thể cấp, thu hồi hoặc tạo liên kết chia sẻ có thời hạn."
+        description="Kiểm tra các quyền truy cập tài liệu được cấp cho credential của bạn."
       />
 
       {!connectedWallet ? (
@@ -254,87 +179,6 @@ export default function SubjectGrantsPage() {
                   </div>
                 )}
 
-                 {selectedCredential && (
-                   <div className="grid gap-6 md:grid-cols-2">
-                     <Card className="border-border/80 bg-secondary/20">
-                       <CardHeader className="pb-2">
-                         <CardTitle className="text-lg">Wallet Verifier Access</CardTitle>
-                         <CardDescription>Quyền truy cập được issuer quản lý tự động.</CardDescription>
-                       </CardHeader>
-                       <CardContent className="space-y-3">
-                         <p className="rounded-lg border border-primary/30 bg-signal-soft/40 p-3 text-sm text-muted-foreground">
-                           AccessGrant được tạo tự động bởi issuer khi credential được cấp. Subject không cần nhập hoặc xử lý wrapped document key.
-                         </p>
-                         <p className="text-xs text-muted-foreground">Subject có thể xem trạng thái grant bên dưới. Chỉ grantor gốc mới có quyền revoke theo policy on-chain.</p>
-                       </CardContent>
-                    </Card>
-
-                    <Card className="border-border/80 bg-secondary/20">
-                      <CardHeader className="pb-2">
-                        <CardTitle className="text-lg">Share Link</CardTitle>
-                        <CardDescription>Liên kết chia sẻ có thời hạn.</CardDescription>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <label className="block text-sm font-medium">
-                          Expiry (days)
-                          <Input
-                            type="number"
-                            value={linkExpiryDays}
-                            onChange={(e) => setLinkExpiryDays(e.target.value)}
-                            className="mt-1"
-                            min={1}
-                          />
-                        </label>
-                        <label className="block text-sm font-medium">
-                          Max uses
-                          <Input
-                            type="number"
-                            value={linkMaxUses}
-                            onChange={(e) => setLinkMaxUses(e.target.value)}
-                            className="mt-1"
-                            min={1}
-                          />
-                        </label>
-                         <label className="block text-sm font-medium">
-                           Link Grant ID
-                          <Input
-                            type="number"
-                            value={linkGrantId}
-                            onChange={(e) => setLinkGrantId(e.target.value)}
-                            className="mt-1"
-                            min={0}
-                           />
-                         </label>
-                         <label className="block text-sm font-medium">
-                           Wrapped key for share link (hex)
-                           <Input
-                             value={linkWrappedKeyHex}
-                             onChange={(e) => setLinkWrappedKeyHex(e.target.value)}
-                             className="mt-1 font-mono text-xs"
-                             placeholder="Required for LinkGrant only"
-                           />
-                         </label>
-                        <div className="flex flex-wrap gap-2 pt-1">
-                          <Button type="button" onClick={handleCreateLink} disabled={actionState !== 'idle'}>
-                            {actionState === 'linking' ? 'Creating...' : 'Create Link'}
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={handleRevokeLink}
-                            disabled={actionState !== 'idle'}
-                          >
-                            {actionState === 'revoking' ? 'Revoking...' : 'Revoke Link'}
-                          </Button>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Link possession grants decryption access. Treat links as sensitive.
-                        </p>
-                      </CardContent>
-                    </Card>
-                  </div>
-                )}
-
                 {selectedCredential && (
                   <section className="space-y-3 rounded-xl border border-border/80 bg-secondary/20 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
@@ -368,47 +212,8 @@ export default function SubjectGrantsPage() {
                   </section>
                 )}
 
-                {selectedCredential && (
-                  <section className="space-y-3 rounded-xl border border-border/80 bg-secondary/20 p-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <div>
-                        <h2 className="font-semibold">Share links</h2>
-                        <p className="text-xs text-muted-foreground">Link hiện tại theo credential. Đây không phải audit timeline.</p>
-                      </div>
-                      <Button type="button" variant="outline" size="sm" onClick={() => void loadAccessGrants()} disabled={grantState === 'loading'}>Làm mới</Button>
-                    </div>
-                    {grantState === 'ready' && linkGrants.length === 0 && <p className="text-sm text-muted-foreground">Chưa có share link.</p>}
-                    {linkGrants.map((grant) => {
-                      const expired = grant.expiresAt <= BigInt(now)
-                      const exhausted = grant.maxUses > 0 && grant.useCount >= grant.maxUses
-                      return <div key={grant.address} className="rounded-lg border border-border bg-card p-3 text-sm">
-                        <p className="font-medium">{grant.status === 'Revoked' ? 'Revoked' : exhausted ? 'Exhausted' : expired ? 'Expired' : 'Active'}</p>
-                        <p className="text-xs text-muted-foreground">Uses: {grant.useCount}/{grant.maxUses === 0 ? 'unlimited' : grant.maxUses}</p>
-                        <p className="text-xs text-muted-foreground">Expires: {new Date(Number(grant.expiresAt) * 1000).toLocaleString()}</p>
-                      </div>
-                    })}
-                  </section>
-                )}
-
-                {shareVisible && shareUrl && (
-                  <section className="space-y-3 rounded-xl border border-amber-500/30 bg-amber-500/10 p-4" role="status">
-                    <p className="font-medium">Link nhạy cảm, chỉ hiển thị một lần</p>
-                    <p className="text-xs text-muted-foreground">Secret nằm trong URL fragment và không được gửi lên server. Chỉ chia sẻ với người nhận dự kiến.</p>
-                    <p className="break-all rounded-lg border border-border bg-card p-3 font-mono text-xs">{shareUrl}</p>
-                    <div className="flex flex-wrap gap-2">
-                      <Button type="button" onClick={() => void navigator.clipboard.writeText(shareUrl).then(() => setCopyState('copied')).catch(() => setCopyState('error'))}>Copy link</Button>
-                      <Button type="button" variant="outline" onClick={() => { setShareVisible(false); setShareUrl(null) }}>Ẩn link</Button>
-                    </div>
-                    {copyState === 'copied' && <p className="text-sm text-primary">Đã copy link.</p>}
-                    {copyState === 'error' && <p className="text-sm text-destructive">Không thể copy. Hãy dùng nút copy của trình duyệt.</p>}
-                  </section>
-                )}
-
                 <OperationFeedback state={operation} network={process.env.NEXT_PUBLIC_NETWORK} onRetry={operation.retryable ? () => void loadAccessGrants() : undefined} />
 
-                {actionState === 'error' && actionError && (
-                  <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4">{actionError}</div>
-                )}
               </>
             )}
           </CardContent>
@@ -416,10 +221,4 @@ export default function SubjectGrantsPage() {
       )}
     </div>
   )
-}
-
-function parseHex(value: string): Uint8Array {
-  const normalized = value.trim()
-  if (!normalized || normalized.length % 2 !== 0 || !/^[0-9a-f]+$/i.test(normalized)) return new Uint8Array()
-  return new Uint8Array(normalized.match(/.{2}/g)!.map((part) => Number.parseInt(part, 16)))
 }

@@ -88,9 +88,12 @@ export default function VerifyPage() {
             </p>
           )}
 
-          <label className="block text-sm font-medium">
-            Mã chứng nhận
-            <Input
+           <label className="block text-sm font-medium">
+             Mã chứng nhận
+             <p className="mt-1 text-xs font-normal text-muted-foreground">
+               Lấy từ cột <span className="font-medium">Credential address</span> trên trang Issuer, rồi dán vào đây.
+             </p>
+             <Input
               value={credentialAddress}
               onChange={(event) => setCredentialAddress(event.target.value)}
               className="mt-2 font-mono text-xs"

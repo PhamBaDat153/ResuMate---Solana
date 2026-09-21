@@ -20,13 +20,12 @@ import {
   hashClaimsEnvelope,
   sha256Hex,
   encryptDocument,
-  wrapAesKeyWithSecret,
   type ClaimsRecord,
 } from '@/lib/credentialCrypto'
 import { hasStoredIdentity } from '@/lib/encryptionIdentity'
 import { uploadEncryptedCredentialPackage } from '@/lib/credentialPackageApi'
 import { prepareIssuerAccessGrantKey, validateWrappedDocumentKey } from '@/lib/issuerGrant'
-import { createAccessGrant, createLinkGrant } from '@/lib/grantProgram'
+import { createAccessGrant } from '@/lib/grantProgram'
 import { fetchAccessGrantsForCredential, type AccessGrantAccount } from '@/lib/grantProgram'
 import { OperationFeedback } from '@/components/operation-feedback'
 import { createErrorState, createIdleState, createPreparingState, createSigningState, createSuccessState, type OperationState } from '@/lib/operationFeedback'
@@ -80,9 +79,6 @@ export default function IssuerPage() {
   const [issuerGrants, setIssuerGrants] = useState<AccessGrantAccount[]>([])
   const [grantState, setGrantState] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle')
   const [operation, setOperation] = useState<OperationState>(createIdleState('issuer'))
-  const [issueLinkEnabled, setIssueLinkEnabled] = useState(false)
-  const [issueLinkDays, setIssueLinkDays] = useState('7')
-  const [issueLinkMaxUses, setIssueLinkMaxUses] = useState('1')
 
   const loadIssuerGrants = useCallback(async (credentialAddress: string) => {
     setGrantTarget(credentialAddress)
@@ -257,14 +253,6 @@ export default function IssuerPage() {
          subjectGrantKey.wrappedDocumentKey,
          null,
        )
-      if (issueLinkEnabled) {
-        const linkSecret = crypto.getRandomValues(new Uint8Array(32))
-        const linkHash = new Uint8Array(await crypto.subtle.digest('SHA-256', linkSecret))
-        const linkEnvelope = await wrapAesKeyWithSecret(preparedAesKey, linkSecret)
-        const linkExpiry = BigInt(Math.floor(Date.now() / 1000) + (Number.parseInt(issueLinkDays, 10) || 7) * 86400)
-        const linkMaxUses = Math.max(0, Number.parseInt(issueLinkMaxUses, 10) || 1)
-        await createLinkGrant(client, issuerAddr, credentialAddr, BigInt(0), linkHash, linkEnvelope, linkExpiry, linkMaxUses)
-      }
       setOperation(createSuccessState('Cấp credential'))
 
       await loadIssuer()
@@ -495,12 +483,14 @@ export default function IssuerPage() {
                   ) : (
                     <>
                     <div className="mt-4 overflow-x-auto">
-                      <table className="w-full min-w-[700px] text-left text-sm">
+                       <p className="mt-3 text-sm text-muted">Để xác minh: sao chép Credential address bên dưới rồi dán vào ô Mã chứng nhận tại trang Verify.</p>
+                       <table className="w-full min-w-[900px] text-left text-sm">
                         <thead className="border-b border-border-low text-muted">
                           <tr>
-                            <th className="px-3 py-2">Subject</th>
-                            <th className="px-3 py-2">ID</th>
-                            <th className="px-3 py-2">Status</th>
+                             <th className="px-3 py-2">Subject</th>
+                             <th className="px-3 py-2">ID</th>
+                             <th className="px-3 py-2">Credential address</th>
+                             <th className="px-3 py-2">Status</th>
                             <th className="px-3 py-2">Accepted</th>
                             <th className="px-3 py-2">URI</th>
                             <th className="px-3 py-2">Action</th>
@@ -509,9 +499,24 @@ export default function IssuerPage() {
                         <tbody>
                           {credentials.map((c) => (
                             <tr key={c.address} className="border-b border-border-low/60">
-                              <td className="break-all px-3 py-3 font-mono text-xs">{c.subject}</td>
-                              <td className="px-3 py-3">#{c.credentialId.toString()}</td>
-                              <td className="px-3 py-3">{c.status}</td>
+                               <td className="break-all px-3 py-3 font-mono text-xs">{c.subject}</td>
+                               <td className="px-3 py-3">#{c.credentialId.toString()}</td>
+                               <td className="px-3 py-3">
+                                 <div className="flex min-w-[260px] items-center gap-2">
+                                   <span className="break-all font-mono text-xs">{c.address}</span>
+                                   <button
+                                     type="button"
+                                     onClick={() => {
+                                       void navigator.clipboard.writeText(c.address)
+                                       toast.success('Đã sao chép mã chứng nhận')
+                                     }}
+                                     className="shrink-0 rounded-lg border border-border-low px-2 py-1 text-xs"
+                                   >
+                                     Copy
+                                   </button>
+                                 </div>
+                               </td>
+                               <td className="px-3 py-3">{c.status}</td>
                               <td className="px-3 py-3">{c.subjectAccepted ? 'Yes' : 'No'}</td>
                               <td className="break-all px-3 py-3 font-mono text-xs">{c.credentialUri}</td>
                               <td className="px-3 py-3">
@@ -528,17 +533,6 @@ export default function IssuerPage() {
                       </table>
                     </div>
 
-                    <div className="mt-4 rounded-xl border border-border-low p-3">
-                      <label className="flex items-center gap-2 text-sm font-medium">
-                        <input type="checkbox" checked={issueLinkEnabled} onChange={(event) => setIssueLinkEnabled(event.target.checked)} />
-                        Create a secret link after issuing
-                      </label>
-                      {issueLinkEnabled && <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                        <label className="text-sm">Link expiry (days)<input type="number" min={1} value={issueLinkDays} onChange={(event) => setIssueLinkDays(event.target.value)} className="mt-1 w-full rounded-lg border border-border-low bg-card px-3 py-2" /></label>
-                        <label className="text-sm">Max uses (0 = unlimited)<input type="number" min={0} value={issueLinkMaxUses} onChange={(event) => setIssueLinkMaxUses(event.target.value)} className="mt-1 w-full rounded-lg border border-border-low bg-card px-3 py-2" /></label>
-                        <p className="text-xs text-muted sm:col-span-2">The issuer creates the secret-wrapped document-key envelope while the AES key is still in memory. The secret is shown only after both transactions confirm.</p>
-                      </div>}
-                    </div>
                      </>
                    )}
                   {credentials.length > 0 && (

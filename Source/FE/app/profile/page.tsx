@@ -626,6 +626,24 @@ export default function ProfilePage() {
                                 </CardDescription>
                               </CardHeader>
                               <CardContent className="space-y-1 text-sm">
+                                <div className="rounded-lg border border-border-low bg-card/60 p-3">
+                                  <p className="text-xs font-medium text-muted-foreground">Mã chứng nhận dùng để Verify</p>
+                                  <div className="mt-1 flex items-start gap-2">
+                                    <p className="min-w-0 flex-1 break-all font-mono text-xs">{credential.address}</p>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="sm"
+                                      className="shrink-0"
+                                      onClick={() => {
+                                        void navigator.clipboard.writeText(credential.address)
+                                        toast.success('Đã sao chép mã chứng nhận')
+                                      }}
+                                    >
+                                      Copy
+                                    </Button>
+                                  </div>
+                                </div>
                                 <p>
                                   {credential.subjectAccepted
                                     ? 'Đã được người nhận xác nhận'
