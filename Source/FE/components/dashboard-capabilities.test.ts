@@ -13,6 +13,8 @@ describe('dashboard capabilities', () => {
     expect(navigation).toContain('Tìm việc bằng AI')
     expect(navigation).toContain('Xác minh chứng nhận')
     expect(navigation).not.toContain('Hồ sơ của tôi')
+    expect(navigation).not.toContain('Bảo mật tài liệu')
+    expect(navigation).not.toContain('Quyền truy cập tài liệu')
   })
 
   it('adds issuer and registry areas only for matching capabilities', () => {
@@ -26,6 +28,8 @@ describe('dashboard capabilities', () => {
 
     expect(navigation).toContain('Cổng cấp chứng nhận')
     expect(navigation).toContain('Quản trị đơn vị cấp')
+    expect(navigation).not.toContain('Bảo mật tài liệu')
+    expect(navigation).not.toContain('Quyền truy cập tài liệu')
     expect(capability.hasCredentials).toBe(true)
   })
 

@@ -13,7 +13,7 @@ ResuMate la nen tang quan ly CV va chung nhan nghe nghiep. Ung dung ket hop:
 - Ho so va cac phien ban CV.
 - Chung nhan (credential) do don vi uy tin cap.
 - Xac minh tinh toan ven cua CV/chung nhan bang hash tren Solana.
-- Ma hoa tai lieu credential va quan ly quyen truy cap.
+- Credential cong khai co the xac minh bang hash tren Solana.
 - AI danh gia CV theo mo ta cong viec.
 - AI tim kiem cong viec phu hop voi CV.
 
@@ -274,6 +274,10 @@ Ban sao link cu se ngung hoat dong sau khi giao dich thu hoi duoc xac nhan.
 
 8. XAC MINH CHUNG NHAN
 ----------------------
+
+Credential public khong can AccessGrant, Share Link, vi verifier hoac passphrase.
+Verifier chi can Credential address. He thong tai manifest va file cong khai,
+tinh lai document hash/claims hash, sau do so sanh voi du lieu tren Solana.
 
 8.1. Xac minh bang wallet
 

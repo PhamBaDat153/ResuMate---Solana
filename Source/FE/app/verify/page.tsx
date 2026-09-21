@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import { address, type Address } from '@solana/kit'
 import { useClient } from '@solana/react'
-import { useConnectedWallet } from '@solana/kit-plugin-wallet/react'
 import { toast } from 'sonner'
 import type { SolanaWalletClient } from '@/components/solana-provider'
 import {
@@ -21,9 +20,7 @@ import { createErrorState, createPreparingState, createSuccessState, type Operat
 
 export default function VerifyPage() {
   const client = useClient<SolanaWalletClient>()
-  const connectedWallet = useConnectedWallet(client)
   const [credentialAddress, setCredentialAddress] = useState('')
-  const [passphrase, setPassphrase] = useState('')
   const [subjectAcceptedRequired, setSubjectAcceptedRequired] = useState(true)
   const [result, setResult] = useState<VerificationResult | null>(null)
   const [state, setState] = useState<'idle' | 'verifying' | 'done' | 'error'>('idle')
@@ -31,19 +28,15 @@ export default function VerifyPage() {
   const [operation, setOperation] = useState<OperationState>(createPreparingState('xác minh'))
 
   async function verify() {
-    if (!connectedWallet) return
     setState('verifying')
     setOperation(createPreparingState('xác minh chứng nhận'))
     setError(null)
     setResult(null)
     toast.message('Đang xác minh chứng nhận…')
     try {
-      const verifierAddr = address(connectedWallet.account.address) as Address
       const next = await verifyEncryptedCredential(
         client,
         address(credentialAddress.trim()) as Address,
-        verifierAddr,
-        passphrase,
         subjectAcceptedRequired,
       )
       setResult(next)
@@ -65,28 +58,17 @@ export default function VerifyPage() {
       <PageHeader
         eyebrow="Công cụ xác minh"
         title="Xác minh chứng nhận"
-        description="Kiểm tra trạng thái, thời hạn và tính toàn vẹn của chứng nhận trước khi giải mã tài liệu."
+        description="Kiểm tra trạng thái, thời hạn và tính toàn vẹn của credential công khai."
       />
 
       <Card className="border-border/70 bg-card/80 shadow-panel animate-fade-up">
         <CardHeader>
           <CardTitle className="font-display text-lg">Thông tin xác minh</CardTitle>
           <CardDescription>
-            Quyền truy cập tài liệu được lấy tự động từ access grant của ví đang kết nối.
+            Tài liệu credential được công khai. Hệ thống sẽ tải tài liệu và đối chiếu hash với dữ liệu trên Solana.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!connectedWallet && (
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 p-4">
-              <p className="text-sm">Kết nối ví để tự động lấy quyền truy cập tài liệu từ access grant.</p>
-            </div>
-          )}
-          {connectedWallet && (
-            <p className="text-sm text-muted-foreground">
-              Đang xác minh bằng ví {connectedWallet.account.address.slice(0, 6)}...
-              {connectedWallet.account.address.slice(-4)}.
-            </p>
-          )}
 
            <label className="block text-sm font-medium">
              Mã chứng nhận
@@ -100,15 +82,6 @@ export default function VerifyPage() {
               placeholder="Địa chỉ chứng nhận"
             />
           </label>
-          <label className="block text-sm font-medium">
-            Mật khẩu bảo mật tài liệu
-            <Input
-              type="password"
-              value={passphrase}
-              onChange={(event) => setPassphrase(event.target.value)}
-              className="mt-2"
-            />
-          </label>
           <label className="flex items-center gap-2 text-sm text-muted-foreground">
             <input
               type="checkbox"
@@ -120,7 +93,7 @@ export default function VerifyPage() {
           <Button
             type="button"
             onClick={() => void verify()}
-            disabled={state === 'verifying' || !credentialAddress || !passphrase || !connectedWallet}
+            disabled={state === 'verifying' || !credentialAddress}
           >
             {state === 'verifying' ? 'Đang xác minh...' : 'Xác minh chứng nhận'}
           </Button>

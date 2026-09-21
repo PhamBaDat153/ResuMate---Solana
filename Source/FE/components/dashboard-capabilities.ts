@@ -42,10 +42,8 @@ export function getDashboardNavGroups(capabilities: DashboardCapabilities): Dash
         ...(capabilities.hasProfile
           ? [
               { href: '/profile', label: 'Hồ sơ của tôi' },
-              { href: '/subject-grants', label: 'Quyền truy cập tài liệu' },
-              { href: '/encryption-setup', label: 'Bảo mật tài liệu' },
             ]
-          : [{ href: '/encryption-setup', label: 'Bảo mật tài liệu' }]),
+          : []),
       ],
     },
     {
@@ -80,11 +78,6 @@ export function getDashboardNavGroups(capabilities: DashboardCapabilities): Dash
       ],
     })
   }
-
-  groups.push({
-    label: 'Cài đặt',
-    items: [{ href: '/encryption-setup', label: 'Bảo mật tài liệu' }],
-  })
 
   return groups
 }
