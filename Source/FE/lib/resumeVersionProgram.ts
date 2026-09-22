@@ -147,6 +147,22 @@ export async function fetchResumeVersion(client: SolanaWalletClient, resume: Add
   return account.exists ? decodeResumeVersionAccount(versionAddress, account) : null
 }
 
+export async function fetchPublicActiveResumeVersion(
+  client: SolanaWalletClient,
+  resume: ResumeAccount,
+): Promise<ResumeVersionAccount | null> {
+  if (!resume.isPublic || resume.versionCount === BigInt(0)) return null
+  const version = await fetchResumeVersion(client, resume.address, resume.activeVersion)
+  if (!version || version.isRevoked) return null
+  try {
+    const uri = new URL(version.contentUri)
+    if (uri.protocol !== 'https:' || !uri.hostname) return null
+  } catch {
+    return null
+  }
+  return version
+}
+
 export async function publishResumeVersionInstruction(owner: Address, prepared: PreparedResumeVersion): Promise<Instruction> {
   if (prepared.contentHash.length !== 32 || prepared.metadataHash.length !== 32) throw new Error('Hash phải dài 32 byte.')
   if (prepared.contentHash.every((byte) => byte === 0)) throw new Error('Content hash không được rỗng.')

@@ -5,6 +5,7 @@ import {
   canonicalResumeMetadata,
   decodeResumeVersionAccount,
   deriveResumeVersionAddress,
+  fetchPublicActiveResumeVersion,
   hashResumeMetadata,
   hexToBytes,
   publishResumeVersionInstruction,
@@ -100,5 +101,16 @@ describe('resume version client', () => {
     expect(() => verifyPublishedVersion(OWNER, value, resume, version)).not.toThrow()
     expect(() => verifyPublishedVersion(OWNER, value, { ...resume, versionCount: BigInt(0) }, version)).toThrow()
     expect(() => verifyPublishedVersion(OWNER, value, resume, { ...version, isRevoked: true })).toThrow()
+  })
+
+  it.each([
+    ['private resume', { isPublic: false, versionCount: BigInt(1) }],
+    ['empty resume', { isPublic: true, versionCount: BigInt(0) }],
+  ])('does not load a %s', async (_name, overrides) => {
+    const client = { rpc: {} } as never
+    await expect(fetchPublicActiveResumeVersion(client, {
+      address: RESUME, owner: OWNER, resumeId: BigInt(0), activeVersion: BigInt(0),
+      versionCount: overrides.versionCount, isPublic: overrides.isPublic, bump: 1,
+    })).resolves.toBeNull()
   })
 })

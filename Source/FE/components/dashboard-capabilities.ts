@@ -39,6 +39,7 @@ export function getDashboardNavGroups(capabilities: DashboardCapabilities): Dash
       label: 'Không gian cá nhân',
       items: [
         { href: '/', label: 'Tổng quan' },
+        { href: '/profiles', label: 'Profile công khai' },
         ...(capabilities.hasProfile
           ? [
               { href: '/profile', label: 'Hồ sơ của tôi' },

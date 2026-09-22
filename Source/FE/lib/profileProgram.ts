@@ -34,6 +34,11 @@ export type UserProfile = {
   bump: number
 }
 
+export type EncodedProgramAccount = {
+  programAddress: Address
+  data: Uint8Array
+}
+
 export type ResumeAccount = {
   address: Address
   owner: Address
@@ -44,9 +49,24 @@ export type ResumeAccount = {
   bump: number
 }
 
-type EncodedProgramAccount = {
-  programAddress: Address
-  data: Uint8Array
+function decodeBase64(value: string): Uint8Array {
+  return Uint8Array.from(atob(value), (character) => character.charCodeAt(0))
+}
+
+export function decodeProfileAccount(profileAddress: Address, account: EncodedProgramAccount): UserProfile {
+  if (account.programAddress !== RESUME_PROGRAM_ID) {
+    throw new Error('Profile account không thuộc về chương trình ResuMate.')
+  }
+  if (account.data.length !== PROFILE_ACCOUNT_SIZE || !sameBytes(account.data.slice(0, 8), ACCOUNT_DISCRIMINATOR)) {
+    throw new Error('Dữ liệu profile on-chain không hợp lệ.')
+  }
+  return {
+    address: profileAddress,
+    owner: getAddressDecoder().decode(account.data.slice(8, 40)),
+    resumeCount: readU64(account.data, 40),
+    credentialCount: readU64(account.data, 48),
+    bump: account.data[56] ?? 0,
+  }
 }
 
 export async function deriveProfileAddress(owner: Address): Promise<Address> {
@@ -96,18 +116,37 @@ export async function fetchProfile(
     throw new Error('Profile account không thuộc về chương trình ResuMate.')
   }
 
-  const data = account.data
-  if (data.length !== PROFILE_ACCOUNT_SIZE || !sameBytes(data.slice(0, 8), ACCOUNT_DISCRIMINATOR)) {
-    throw new Error('Dữ liệu profile on-chain không hợp lệ.')
-  }
+  return decodeProfileAccount(profileAddress, account)
+}
 
-  return {
-    address: profileAddress,
-    owner: getAddressDecoder().decode(data.slice(8, 40)),
-    resumeCount: readU64(data, 40),
-    credentialCount: readU64(data, 48),
-    bump: data[56] ?? 0,
-  }
+export async function fetchAllProfiles(client: SolanaWalletClient): Promise<UserProfile[]> {
+  const accounts = await client.rpc.getProgramAccounts(RESUME_PROGRAM_ID, {
+    encoding: 'base64',
+    commitment: 'confirmed',
+    filters: [{ dataSize: BigInt(PROFILE_ACCOUNT_SIZE) }],
+  }).send()
+
+  return accounts.flatMap((account) => {
+    const data = account.account.data[0]
+    if (typeof data !== 'string') return []
+    try {
+      return [decodeProfileAccount(account.pubkey, { programAddress: account.account.owner, data: decodeBase64(data) })]
+    } catch {
+      return []
+    }
+  })
+}
+
+export async function fetchPublicProfile(client: SolanaWalletClient, owner: Address) {
+  const profile = await fetchProfile(client, owner)
+  if (!profile) return null
+  const [resumes, credentials] = await Promise.all([
+    fetchOwnedResumes(client, owner, profile.resumeCount).catch(() => []),
+    import('./credentialProgram')
+      .then(({ fetchProfileCredentials }) => fetchProfileCredentials(client, owner, profile.credentialCount))
+      .catch(() => []),
+  ])
+  return { profile, resumes, credentials }
 }
 
 export function decodeResumeAccount(

@@ -51,6 +51,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     () => true,
     () => false,
   )
+  const isPublicRoute = pathname === '/profiles' || pathname.startsWith('/profiles/')
 
   useEffect(() => {
     let cancelled = false
@@ -99,6 +100,10 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
 
   if (!mounted) {
     return <ConnectGate loading />
+  }
+
+  if (!connectedWallet && isPublicRoute) {
+    return <PublicRouteShell>{children}</PublicRouteShell>
   }
 
   if (!connectedWallet) {
@@ -216,6 +221,20 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         </main>
       </div>
     </DashboardContext.Provider>
+  )
+}
+
+function PublicRouteShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen">
+      <header className="flex h-14 items-center justify-between border-b border-border/80 bg-background/80 px-4 backdrop-blur-md sm:px-6">
+        <Link href="/" className="font-display text-sm font-semibold tracking-tight">ResuMate</Link>
+        <Link href="/profiles" className="text-sm text-muted-foreground transition-colors hover:text-foreground">
+          Profile công khai
+        </Link>
+      </header>
+      <main className="px-4 py-6 sm:px-6 md:py-10">{children}</main>
+    </div>
   )
 }
 
